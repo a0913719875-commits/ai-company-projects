@@ -194,10 +194,13 @@
     <!-- Action Grid -->
     <div class="px-4 grid grid-cols-2 gap-3 mb-4">
       <button onclick="showView('products')"
-              class="factory-card p-5 text-left active:opacity-70 active:scale-95 transition-all">
+              class="factory-card p-5 text-left active:opacity-70 active:scale-95 transition-all relative">
         <div class="text-2xl mb-2">📦</div>
         <div class="font-bold text-white text-sm">我的產品</div>
         <div class="text-xs text-gray-600 mt-0.5">查看所有專案</div>
+        <div id="pending-badge"
+             class="hidden absolute top-2 right-2 min-w-5 h-5 px-1 rounded-full text-xs font-bold flex items-center justify-center"
+             style="background:#ff4466; color:white;"></div>
       </button>
       <button onclick="showView('status')"
               class="factory-card p-5 text-left active:opacity-70 active:scale-95 transition-all">
@@ -250,6 +253,13 @@
 
     <!-- Products list (after login) -->
     <div id="products-logged-in" class="hidden">
+
+      <!-- ⚠️ Pending Actions -->
+      <div id="pending-section" class="hidden mb-4">
+        <div class="text-xs text-gray-500 mb-2 tracking-widest">⚠️ 需要您確認</div>
+        <div id="pending-cards"></div>
+      </div>
+
       <!-- User Info -->
       <div class="factory-card p-3 mb-4 flex items-center gap-3">
         <img id="user-pic" src="" class="w-10 h-10 rounded-full object-cover"
@@ -353,9 +363,10 @@ const PM_CENTER  = 'https://ai-pm-center-827577239332.asia-east1.run.app';
 const GH_PAGES   = 'https://a0913719875-commits.github.io/ai-company-projects';
 
 // ── STATE ────────────────────────────────────────────────────────────
-let currentUser  = null;
-let projects     = [];
-let liffReady    = false;
+let currentUser    = null;
+let projects       = [];
+let pendingActions = [];
+let liffReady      = false;
 
 // ── PIPELINE DATA ────────────────────────────────────────────────────
 const PIPELINE = [
@@ -730,15 +741,19 @@ async function afterLogin() {
 
 async function loadProjects(userId, customerId) {
   try {
-    const res = await fetch(`${PM_CENTER}/projects/${userId}`, { signal: AbortSignal.timeout(6000) });
+    const res = await fetch(`${PM_CENTER}/api/customer/${userId}/projects`,
+                           { signal: AbortSignal.timeout(6000) });
     if (!res.ok) throw new Error('API error');
     const data = await res.json();
-    projects = Array.isArray(data) ? data : (data.projects || []);
+    projects = data.projects || [];
+    pendingActions = data.pending_actions || [];
   } catch (e) {
     console.warn('PM Center fallback:', e.message);
     projects = getDemoData();
+    pendingActions = getDemoPending();
   }
   renderProjects();
+  renderPendingBadge();
 }
 
 function demoMode() {
@@ -749,6 +764,56 @@ function demoMode() {
   document.getElementById('products-logged-in').classList.remove('hidden');
   projects = getDemoData();
   renderProjects();
+}
+
+function getDemoPending() {
+  return [
+    {
+      type: 'proposal', priority: 'high',
+      title: '📋 需求確認書待審閱',
+      description: 'AI CEO 已完成訪談，請確認需求文件後開始開發',
+      action_text: '在 LINE 回覆「確認開發」',
+      created_at: new Date().toISOString()
+    }
+  ];
+}
+
+function renderPendingBadge() {
+  const count = pendingActions.length;
+  // Home page badge
+  const badge = document.getElementById('pending-badge');
+  if (badge) badge.textContent = count > 0 ? count : '';
+  if (badge) badge.classList.toggle('hidden', count === 0);
+
+  // Products page section
+  const section = document.getElementById('pending-section');
+  const cards   = document.getElementById('pending-cards');
+  if (!section || !cards) return;
+
+  if (count === 0) { section.classList.add('hidden'); return; }
+  section.classList.remove('hidden');
+
+  const PRIORITY_COLOR = { high: '#ff4466', medium: '#fbbf24', low: '#00ff88' };
+  cards.innerHTML = pendingActions.map(p => {
+    const clr = PRIORITY_COLOR[p.priority] || '#7c6cff';
+    return `
+      <div class="mb-3 p-4 rounded-2xl border"
+           style="background:rgba(255,68,102,0.06); border-color:rgba(255,68,102,0.25);">
+        <div class="flex items-start gap-3">
+          <div class="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 pulse"
+               style="background:${clr};"></div>
+          <div class="flex-1 min-w-0">
+            <div class="font-bold text-sm text-white">${p.title}</div>
+            <div class="text-xs text-gray-400 mt-0.5">${p.description}</div>
+            <div class="text-xs mt-2 px-2 py-1 rounded-lg inline-block"
+                 style="background:rgba(255,68,102,0.12); color:${clr};">
+              👉 ${p.action_text}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function getDemoData() {
