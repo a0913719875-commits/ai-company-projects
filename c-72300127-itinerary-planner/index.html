@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>行程規劃APP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #07070f;
+            color: #ffffff;
+        }
+        .card {
+            background-color: rgba(15, 16, 32, 0.8);
+            border: 1px solid #1a1d35;
+            border-radius: 12px;
+        }
+        .btn {
+            background-image: linear-gradient(to right, #7c6cff, #00d4ff);
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        .btn:active {
+            transform: scale(0.95);
+        }
+        .input {
+            background-color: #0f1020;
+            color: #ffffff;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .input:focus {
+            outline: none;
+            border-color: #7c6cff;
+        }
+        th, td {
+            padding: 8px;
+        }
+        tr:nth-child(even) {
+            background-color: #1a1d35;
+        }
+    </style>
+</head>
+<body class="p-4">
+    <header class="mb-6">
+        <h1 class="text-2xl font-bold">行程規劃APP <span id="total-tasks" class="text-blue-400">(共 0 個行程)</span></h1>
+    </header>
+    <main>
+        <div class="flex gap-4 mb-4">
+            <input id="task" type="text" class="input w-1/2 px-4 py-2" placeholder="新增行程" />
+            <input id="datetime" type="datetime-local" class="input px-4 py-2" />
+            <button id="add-button" class="btn px-4 py-2 rounded-lg">新增</button>
+        </div>
+        <div>
+            <table class="table-auto w-full text-left">
+                <thead>
+                    <tr>
+                        <th class="border-b">行程</th>
+                        <th class="border-b">時間</th>
+                    </tr>
+                </thead>
+                <tbody id="task-list">
+                    <!-- Tasks will be dynamically added here -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+    <footer class="mt-6">
+        <p class="text-gray-400">行程總覽 - 將您的每一天安排得井井有條</p>
+    </footer>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const taskInput = document.getElementById('task');
+            const dateTimeInput = document.getElementById('datetime');
+            const addButton = document.getElementById('add-button');
+            const taskList = document.getElementById('task-list');
+            const totalTasksElement = document.getElementById('total-tasks');
+
+            const updateTaskCount = () => {
+                totalTasksElement.textContent = `共 ${taskList.querySelectorAll('tr').length} 個行程`;
+            };
+
+            const loadTasks = () => {
+                const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+                tasks.forEach(task => addTaskToDOM(task.name, task.datetime));
+                updateTaskCount();
+            };
+
+            const saveTask = (name, datetime) => {
+                const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+                tasks.push({ name, datetime });
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            };
+
+            const addTaskToDOM = (name, datetime) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${name}</td>
+                    <td>${datetime}</td>
+                `;
+                taskList.appendChild(row);
+            };
+
+            const addTask = () => {
+                const task = taskInput.value.trim();
+                const datetime = dateTimeInput.value.trim();
+                if (task && datetime) {
+                    addTaskToDOM(task, datetime);
+                    saveTask(task, datetime);
+                    taskInput.value = '';
+                    dateTimeInput.value = '';
+                    updateTaskCount();
+                }
+            };
+
+            addButton.addEventListener('click', addTask);
+
+            loadTasks();
+        });
+    </script>
+</body>
+</html>
