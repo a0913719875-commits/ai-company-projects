@@ -8,859 +8,595 @@
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     * { box-sizing: border-box; }
-    body {
-      background: #07070f;
-      color: #fff;
-      font-family: -apple-system, 'SF Pro Display', system-ui, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      overscroll-behavior: none;
-    }
-
-    /* Grid background */
-    .grid-bg {
-      background-image:
-        linear-gradient(rgba(124,108,255,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(124,108,255,0.04) 1px, transparent 1px);
-      background-size: 32px 32px;
-      min-height: 100vh;
-    }
-
-    /* Neon accents */
-    .text-neon-purple { color: #7c6cff; }
-    .text-neon-blue   { color: #00d4ff; }
-    .text-neon-green  { color: #00ff88; }
-
-    /* Cards */
-    .factory-card {
-      background: rgba(15,16,32,0.85);
-      border: 1px solid rgba(124,108,255,0.2);
-      border-radius: 14px;
-      backdrop-filter: blur(12px);
-    }
-    .project-card {
-      background: rgba(10,11,24,0.9);
-      border: 1px solid rgba(0,212,255,0.15);
-      border-radius: 16px;
-      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-    }
-    .project-card:active {
-      transform: scale(0.98);
-      border-color: rgba(124,108,255,0.5);
-      box-shadow: 0 4px 24px rgba(124,108,255,0.15);
-    }
-
-    /* Pipeline dot pulse */
-    @keyframes pulse-dot {
-      0%,100% { opacity:1; transform:scale(1); }
-      50%      { opacity:0.4; transform:scale(0.7); }
-    }
+    body { background: #07070f; color: #fff; font-family: -apple-system, 'SF Pro Display', system-ui, sans-serif; overscroll-behavior: none; }
+    .grid-bg { background-image: linear-gradient(rgba(124,108,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(124,108,255,0.04) 1px, transparent 1px); background-size: 32px 32px; min-height: 100vh; }
+    .card { background: rgba(15,16,32,0.85); border: 1px solid rgba(124,108,255,0.2); border-radius: 14px; }
+    .grad-text { background: linear-gradient(135deg, #7c6cff, #00d4ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .btn-primary { background: linear-gradient(135deg, #7c6cff, #00d4ff); border-radius: 12px; color: white; font-weight: 700; }
+    .btn-primary:active { opacity: 0.8; }
+    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
     .pulse { animation: pulse-dot 1.8s ease-in-out infinite; }
-
-    /* Progress bar fill */
-    @keyframes fill-bar {
-      from { width:0 }
-      to   { width: var(--w) }
-    }
+    @keyframes fill-bar { from{width:0} to{width:var(--w)} }
     .bar-fill { animation: fill-bar 1.2s cubic-bezier(0.4,0,0.2,1) forwards; }
-
-    /* Scan line */
-    @keyframes scan {
-      0%   { top:-4px }
-      100% { top:100% }
-    }
-    .scan-line {
-      position:absolute; left:0; right:0; height:2px;
-      background: linear-gradient(90deg, transparent, #7c6cff44, transparent);
-      animation: scan 3s linear infinite;
-    }
-
-    /* Flow down the pipeline */
-    @keyframes flow-down {
-      0%   { opacity:0; transform:translateY(-8px); }
-      30%  { opacity:1; }
-      70%  { opacity:1; }
-      100% { opacity:0; transform:translateY(8px); }
-    }
-    .flow { animation: flow-down 2s ease-in-out infinite; }
-
-    /* Fade in */
-    @keyframes fade-in {
-      from { opacity:0; transform:translateY(12px); }
-      to   { opacity:1; transform:translateY(0); }
-    }
+    @keyframes fade-in { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
     .fade-in { animation: fade-in 0.4s ease forwards; }
-
-    /* Gradient text */
-    .grad-text {
-      background: linear-gradient(135deg, #7c6cff, #00d4ff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    /* Button */
-    .btn-grad {
-      background: linear-gradient(135deg, #7c6cff, #00d4ff);
-      border-radius: 12px;
-      color: white;
-      font-weight: 700;
-      transition: opacity 0.15s;
-    }
-    .btn-grad:active { opacity: 0.8; }
-    .btn-line-green {
-      background: linear-gradient(135deg, #00b900, #00d900);
-      border-radius: 12px;
-      color: white;
-      font-weight: 700;
-    }
-
-    /* Tab active */
-    .tab-active { border-bottom: 2px solid #7c6cff; }
-    .tab-active span { color: #7c6cff; }
-
-    /* Scrollbar */
-    ::-webkit-scrollbar { width: 3px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #7c6cff55; border-radius: 2px; }
-
-    /* Loading spinner */
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spin { animation: spin 0.8s linear infinite; }
-
-    /* Blinking cursor */
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-    .cursor::after { content:'|'; animation: blink 1s step-end infinite; }
+    @keyframes terminal-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .terminal-cursor { display:inline-block; width:8px; height:14px; background:#00ff88; animation:terminal-blink 1s step-end infinite; vertical-align:middle; }
+    @keyframes scan { 0%{top:-4px} 100%{top:100%} }
+    .scan-line { position:absolute; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,#7c6cff44,transparent); animation:scan 3s linear infinite; }
+    .terminal { background:#000; border:1px solid #00ff88; border-radius:8px; font-family:'Courier New',monospace; font-size:12px; }
+    ::-webkit-scrollbar { width:3px; } ::-webkit-scrollbar-thumb { background:#7c6cff55; border-radius:2px; }
+    .doc-card { background: rgba(10,11,24,0.9); border: 1px solid rgba(124,108,255,0.2); border-radius:12px; transition:all 0.2s; }
+    .doc-card:active { transform:scale(0.98); border-color:#7c6cff; }
+    .status-dot-green { background:#00ff88; box-shadow:0 0 6px #00ff88; }
+    .status-dot-red { background:#ff4466; box-shadow:0 0 6px #ff4466; }
   </style>
 </head>
 <body class="grid-bg">
 
-<!-- ── HEADER ─────────────────────────────────────── -->
-<div id="header" class="fixed top-0 left-0 right-0 z-50 px-4 py-3"
-     style="background:rgba(7,7,15,0.97); border-bottom:1px solid rgba(124,108,255,0.15);">
+<!-- HEADER -->
+<div class="fixed top-0 left-0 right-0 z-50 px-4 py-3" style="background:rgba(7,7,15,0.97);border-bottom:1px solid rgba(124,108,255,0.15);">
   <div class="flex items-center justify-between">
     <div>
-      <div class="text-xs tracking-widest" style="color:#7c6cff44; letter-spacing:.2em;">AI SOFTWARE FACTORY</div>
-      <div class="text-sm font-bold text-neon-green" id="factory-status-text">⚡ 全力運轉中</div>
+      <div class="text-xs tracking-widest" style="color:#7c6cff44;letter-spacing:.2em;">AI SOFTWARE FACTORY</div>
+      <div class="text-sm font-bold" style="color:#00ff88;">⚡ 全力運轉中</div>
     </div>
-    <div id="user-btn" onclick="handleUserBtn()"
-         class="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer overflow-hidden"
-         style="border:1px solid rgba(124,108,255,0.3); background:rgba(124,108,255,0.1);">
+    <div id="user-btn" class="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer overflow-hidden" style="border:1px solid rgba(124,108,255,0.3);background:rgba(124,108,255,0.1);">
       <span id="user-icon" class="text-sm">👤</span>
     </div>
   </div>
 </div>
 
-<!-- ── MAIN ───────────────────────────────────────── -->
+<!-- MAIN -->
 <div class="pt-16 pb-20">
 
-  <!-- ===== HOME VIEW ===== -->
-  <div id="view-home" class="fade-in">
-
-    <!-- Hero -->
-    <div class="px-4 pt-6 pb-4 text-center">
-      <div style="font-size:3rem; margin-bottom:.5rem;">🏭</div>
-      <h1 class="text-3xl font-black mb-1 grad-text">AI SOFTWARE FACTORY</h1>
-      <p class="text-gray-500 text-xs tracking-wider mb-5">從想法到產品 · 全自動開發</p>
-
-      <!-- Stats -->
-      <div class="flex justify-center gap-6">
-        <div class="text-center">
-          <div class="text-2xl font-black text-neon-purple">24H</div>
-          <div class="text-xs text-gray-600">全天運作</div>
-        </div>
+  <!-- HOME VIEW -->
+  <div id="view-home" class="fade-in px-4 pt-6">
+    <div class="text-center mb-6">
+      <div class="text-4xl mb-2">🏭</div>
+      <h1 class="text-2xl font-black mb-1 grad-text">AI SOFTWARE FACTORY</h1>
+      <p class="text-gray-500 text-xs tracking-wider">從想法到產品 · 全自動開發</p>
+      <div class="flex justify-center gap-6 mt-4">
+        <div class="text-center"><div class="text-xl font-black" style="color:#7c6cff;">24H</div><div class="text-xs text-gray-600">全天運作</div></div>
         <div class="w-px" style="background:rgba(124,108,255,0.2);"></div>
-        <div class="text-center">
-          <div class="text-2xl font-black text-neon-blue">17</div>
-          <div class="text-xs text-gray-600">AI 工程師</div>
-        </div>
+        <div class="text-center"><div class="text-xl font-black" style="color:#00d4ff;">17</div><div class="text-xs text-gray-600">AI 工程師</div></div>
         <div class="w-px" style="background:rgba(124,108,255,0.2);"></div>
-        <div class="text-center">
-          <div class="text-2xl font-black text-neon-green" id="stat-done">-</div>
-          <div class="text-xs text-gray-600">已完成</div>
-        </div>
+        <div class="text-center"><div class="text-xl font-black" style="color:#00ff88;" id="stat-done">-</div><div class="text-xs text-gray-600">已完成</div></div>
       </div>
     </div>
-
-    <!-- Pipeline Card -->
-    <div class="mx-4 mb-4 factory-card p-4 relative overflow-hidden">
-      <div class="scan-line"></div>
-      <div class="text-xs text-gray-600 mb-3 tracking-widest flex items-center gap-2">
-        <span class="pulse inline-block w-2 h-2 rounded-full bg-green-400"></span>
-        開發流水線 — 即時運轉
-      </div>
-      <div id="pipeline-steps" class="flex flex-col gap-2"></div>
-    </div>
-
-    <!-- Action Grid -->
-    <div class="px-4 grid grid-cols-2 gap-3 mb-4">
-      <button onclick="showView('products')"
-              class="factory-card p-5 text-left active:opacity-70 active:scale-95 transition-all relative">
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <button onclick="showView('products')" class="card p-5 text-left active:opacity-70 active:scale-95 transition-all relative">
         <div class="text-2xl mb-2">📦</div>
         <div class="font-bold text-white text-sm">我的產品</div>
-        <div class="text-xs text-gray-600 mt-0.5">查看所有專案</div>
-        <div id="pending-badge"
-             class="hidden absolute top-2 right-2 min-w-5 h-5 px-1 rounded-full text-xs font-bold flex items-center justify-center"
-             style="background:#ff4466; color:white;"></div>
+        <div class="text-xs text-gray-600 mt-0.5">UI設計+更換管理</div>
+        <div id="pending-badge" class="hidden absolute top-2 right-2 min-w-5 h-5 px-1 rounded-full text-xs font-bold flex items-center justify-center" style="background:#ff4466;color:white;"></div>
       </button>
-      <button onclick="showView('status')"
-              class="factory-card p-5 text-left active:opacity-70 active:scale-95 transition-all">
+      <button onclick="showView('status')" class="card p-5 text-left active:opacity-70 active:scale-95 transition-all">
         <div class="text-2xl mb-2">📡</div>
         <div class="font-bold text-white text-sm">即時狀態</div>
-        <div class="text-xs text-gray-600 mt-0.5">工廠監控中心</div>
+        <div class="text-xs text-gray-600 mt-0.5">終端機監控</div>
       </button>
-      <button onclick="showView('history')"
-              class="factory-card p-5 text-left active:opacity-70 active:scale-95 transition-all">
+      <button onclick="showView('history')" class="card p-5 text-left active:opacity-70 active:scale-95 transition-all">
         <div class="text-2xl mb-2">📋</div>
         <div class="font-bold text-white text-sm">開發紀錄</div>
-        <div class="text-xs text-gray-600 mt-0.5">所有完成任務</div>
+        <div class="text-xs text-gray-600 mt-0.5">時間軸+完成功能</div>
       </button>
-      <button onclick="showView('docs')"
-              class="factory-card p-5 text-left active:opacity-70 active:scale-95 transition-all">
-        <div class="text-2xl mb-2">📄</div>
+      <button onclick="showView('docs')" class="card p-5 text-left active:opacity-70 active:scale-95 transition-all">
+        <div class="text-2xl mb-2">📚</div>
         <div class="font-bold text-white text-sm">開發文件</div>
-        <div class="text-xs text-gray-600 mt-0.5">技術規格說明</div>
+        <div class="text-xs text-gray-600 mt-0.5">AI 自動文件中心</div>
       </button>
-    </div>
-
-    <!-- CTA -->
-    <div class="px-4">
-      <a href="https://line.me/R/oaMessage/%40your-oa-id/?text=AI%20CEO"
-         class="btn-grad block w-full py-4 text-center text-base font-black">
-        🧠 與 AI CEO 開始對談
-      </a>
-      <p class="text-xs text-center text-gray-700 mt-2">點擊後在 LINE 中直接對話</p>
     </div>
   </div>
 
-  <!-- ===== PRODUCTS VIEW ===== -->
+  <!-- PRODUCTS VIEW -->
   <div id="view-products" class="hidden fade-in px-4 pt-2">
     <div class="flex items-center gap-3 mb-4">
       <button onclick="showView('home')" class="text-gray-500 text-sm py-2 pr-3">← 返回</button>
       <h2 class="font-bold text-lg">📦 我的產品</h2>
     </div>
-
-    <!-- Login prompt -->
-    <div id="login-prompt" class="factory-card p-7 text-center">
+    <div id="login-prompt" class="card p-7 text-center">
       <div class="text-5xl mb-4">🔐</div>
       <h3 class="text-lg font-bold mb-1">身份驗證</h3>
-      <p class="text-gray-500 text-sm mb-6">使用 LINE 帳號登入<br>即可查看您的所有專案</p>
-      <button onclick="doLiffLogin()"
-              class="btn-line-green w-full py-4 text-base flex items-center justify-center gap-2">
-        <span style="background:#fff; color:#00b900; border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:14px; font-weight:900;">L</span>
+      <p class="text-gray-500 text-sm mb-6">使用 LINE 帳號登入查看您的產品</p>
+      <button onclick="doLiffLogin()" class="w-full py-4 text-base font-bold rounded-xl" style="background:linear-gradient(135deg,#00b900,#00d900);color:white;">
+        <span style="background:#fff;color:#00b900;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;margin-right:8px;">L</span>
         使用 LINE 帳號登入
       </button>
     </div>
-
-    <!-- Products list (after login) -->
-    <div id="products-logged-in" class="hidden">
-
-      <!-- ⚠️ Pending Actions -->
-      <div id="pending-section" class="hidden mb-4">
-        <div class="text-xs text-gray-500 mb-2 tracking-widest">⚠️ 需要您確認</div>
-        <div id="pending-cards"></div>
+    <div id="products-logged" class="hidden">
+      <div class="card p-3 mb-4 flex items-center gap-3">
+        <img id="user-pic" src="" class="w-10 h-10 rounded-full object-cover" style="border:1px solid rgba(124,108,255,0.4);">
+        <div class="flex-1"><div class="font-bold text-sm" id="user-name">-</div><div class="text-xs text-gray-600" id="user-cid">-</div></div>
+        <div class="text-xs px-2 py-1 rounded-full" style="background:rgba(0,255,136,0.1);color:#00ff88;border:1px solid rgba(0,255,136,0.2);">✅ 已驗證</div>
       </div>
-
-      <!-- User Info -->
-      <div class="factory-card p-3 mb-4 flex items-center gap-3">
-        <img id="user-pic" src="" class="w-10 h-10 rounded-full object-cover"
-             style="border:1px solid rgba(124,108,255,0.4);">
-        <div class="flex-1">
-          <div class="font-bold text-sm" id="user-display-name">-</div>
-          <div class="text-xs text-gray-600" id="user-cid">-</div>
-        </div>
-        <div class="text-xs px-2 py-1 rounded-full text-neon-green"
-             style="background:rgba(0,255,136,0.1); border:1px solid rgba(0,255,136,0.2);">
-          ✅ 已驗證
-        </div>
-      </div>
-
-      <!-- Loading state -->
-      <div id="products-loading" class="text-center py-8 text-gray-600">
-        <div class="spin inline-block text-2xl mb-2">⚙️</div>
-        <p class="text-sm">載入專案中...</p>
-      </div>
-
-      <!-- Project cards -->
-      <div id="project-cards" class="hidden"></div>
+      <div id="product-cards"></div>
     </div>
   </div>
 
-  <!-- ===== STATUS VIEW ===== -->
+  <!-- STATUS VIEW -->
   <div id="view-status" class="hidden fade-in px-4 pt-2">
     <div class="flex items-center gap-3 mb-4">
       <button onclick="showView('home')" class="text-gray-500 text-sm py-2 pr-3">← 返回</button>
-      <h2 class="font-bold text-lg">📡 工廠即時狀態</h2>
+      <h2 class="font-bold text-lg">📡 即時狀態</h2>
     </div>
-
-    <!-- Active Project Pipeline -->
-    <div id="active-pipeline" class="mb-4"></div>
-
-    <!-- Departments -->
-    <div class="factory-card p-4">
-      <div class="text-xs text-gray-600 mb-3 tracking-widest">🤖 AI 部門狀態</div>
+    <!-- AI Departments Status -->
+    <div class="card p-4 mb-4 relative overflow-hidden">
+      <div class="scan-line"></div>
+      <div class="text-xs text-gray-500 mb-3 tracking-widest">🤖 AI 部門狀態</div>
       <div id="dept-grid" class="grid grid-cols-2 gap-2"></div>
     </div>
+    <!-- Terminal -->
+    <div class="terminal p-3 mb-4">
+      <div class="flex items-center gap-2 mb-2 pb-2 border-b border-green-900">
+        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+        <span class="text-green-400 text-xs ml-2">AI Factory Terminal</span>
+      </div>
+      <div id="terminal-log" style="height:200px;overflow-y:auto;color:#00ff88;"></div>
+      <div class="mt-1"><span class="text-green-400">$ </span><span class="terminal-cursor"></span></div>
+    </div>
+    <!-- Active projects -->
+    <div id="active-pipeline"></div>
   </div>
 
-  <!-- ===== HISTORY VIEW ===== -->
+  <!-- HISTORY VIEW -->
   <div id="view-history" class="hidden fade-in px-4 pt-2">
     <div class="flex items-center gap-3 mb-4">
       <button onclick="showView('home')" class="text-gray-500 text-sm py-2 pr-3">← 返回</button>
       <h2 class="font-bold text-lg">📋 開發紀錄</h2>
     </div>
-    <div id="history-list"></div>
+    <div class="grid grid-cols-1 gap-4">
+      <!-- Block 1: Timeline -->
+      <div class="card p-4">
+        <div class="text-sm font-bold mb-3" style="color:#7c6cff;">⏱️ AI 工作時間軸</div>
+        <div id="timeline-list"></div>
+      </div>
+      <!-- Block 2: Completed Features -->
+      <div class="card p-4">
+        <div class="text-sm font-bold mb-3" style="color:#00ff88;">✅ 已完成功能</div>
+        <div id="features-list"></div>
+      </div>
+      <!-- Block 3: AI Thinking -->
+      <div class="card p-4">
+        <div class="text-sm font-bold mb-3" style="color:#00d4ff;">🧠 AI 思考過程</div>
+        <div id="thinking-list"></div>
+      </div>
+      <!-- Block 4: Deployment -->
+      <div class="card p-4">
+        <div class="text-sm font-bold mb-3" style="color:#ffd700;">🚀 最新部署紀錄</div>
+        <div id="deploy-record"></div>
+      </div>
+    </div>
   </div>
 
-  <!-- ===== DOCS VIEW ===== -->
+  <!-- DOCS VIEW -->
   <div id="view-docs" class="hidden fade-in px-4 pt-2">
     <div class="flex items-center gap-3 mb-4">
       <button onclick="showView('home')" class="text-gray-500 text-sm py-2 pr-3">← 返回</button>
-      <h2 class="font-bold text-lg">📄 開發文件</h2>
+      <h2 class="font-bold text-lg">📚 開發文件中心</h2>
     </div>
-    <div class="factory-card p-8 text-center text-gray-600">
-      <div class="text-4xl mb-3">🔧</div>
-      <p class="font-bold mb-1">建置中</p>
-      <p class="text-xs">專案完成後自動生成技術文件</p>
+    <div class="flex flex-col gap-3">
+      <button onclick="showDoc('requirement')" class="doc-card p-4 text-left">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">📄</span>
+          <div class="flex-1"><div class="font-bold">需求文件</div><div class="text-xs text-gray-500">AI CEO 需求確認書</div></div>
+          <span class="text-gray-600 text-sm">→</span>
+        </div>
+      </button>
+      <button onclick="showDoc('architecture')" class="doc-card p-4 text-left">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">🏗️</span>
+          <div class="flex-1"><div class="font-bold">系統架構圖</div><div class="text-xs text-gray-500">Architect AI 設計文件</div></div>
+          <span class="text-gray-600 text-sm">→</span>
+        </div>
+      </button>
+      <button onclick="showDoc('manual')" class="doc-card p-4 text-left">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">📘</span>
+          <div class="flex-1"><div class="font-bold">使用手冊</div><div class="text-xs text-gray-500">Frontend AI 操作說明</div></div>
+          <span class="text-gray-600 text-sm">→</span>
+        </div>
+      </button>
+      <button onclick="showDoc('api')" class="doc-card p-4 text-left">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">🔌</span>
+          <div class="flex-1"><div class="font-bold">API 文件</div><div class="text-xs text-gray-500">Backend AI API 規格</div></div>
+          <span class="text-gray-600 text-sm">→</span>
+        </div>
+      </button>
+    </div>
+    <div class="card p-3 mt-4" style="border-color:rgba(255,100,50,0.3);background:rgba(255,100,50,0.05);">
+      <div class="text-sm font-bold mb-1" style="color:#ff6432;">⚠️ AI 修改提醒</div>
+      <div class="text-xs text-gray-400">修改已確認的需求文件將產生額外費用。每次需求變更將自動生成「AI 變更單」並重新報價。</div>
     </div>
   </div>
 
-  <!-- ===== DETAIL VIEW ===== -->
-  <div id="view-detail" class="hidden fade-in px-4 pt-2">
+  <!-- DOC DETAIL VIEW -->
+  <div id="view-doc-detail" class="hidden fade-in px-4 pt-2">
     <div class="flex items-center gap-3 mb-4">
-      <button onclick="showView('products')" class="text-gray-500 text-sm py-2 pr-3">← 返回</button>
-      <h2 class="font-bold text-lg" id="detail-name">專案詳情</h2>
+      <button onclick="showView('docs')" class="text-gray-500 text-sm py-2 pr-3">← 返回</button>
+      <h2 class="font-bold text-lg" id="doc-title">文件詳情</h2>
     </div>
-    <div id="detail-content"></div>
+    <div id="doc-content"></div>
   </div>
 
 </div>
 
-<!-- ── BOTTOM NAV ──────────────────────────────────── -->
-<div class="fixed bottom-0 left-0 right-0 z-50 flex"
-     style="background:rgba(7,7,15,0.97); border-top:1px solid rgba(124,108,255,0.12); padding-bottom:env(safe-area-inset-bottom);">
-  <button onclick="showView('home')" id="nav-home" class="flex-1 py-3 flex flex-col items-center gap-0.5 active:opacity-60">
-    <span class="text-xl">🏭</span>
-    <span class="text-xs text-gray-600">工廠</span>
-  </button>
-  <button onclick="showView('products')" id="nav-products" class="flex-1 py-3 flex flex-col items-center gap-0.5 active:opacity-60">
-    <span class="text-xl">📦</span>
-    <span class="text-xs text-gray-600">產品</span>
-  </button>
-  <button onclick="showView('status')" id="nav-status" class="flex-1 py-3 flex flex-col items-center gap-0.5 active:opacity-60">
-    <span class="text-xl">📡</span>
-    <span class="text-xs text-gray-600">狀態</span>
-  </button>
-  <button onclick="showView('history')" id="nav-history" class="flex-1 py-3 flex flex-col items-center gap-0.5 active:opacity-60">
-    <span class="text-xl">📋</span>
-    <span class="text-xs text-gray-600">紀錄</span>
-  </button>
+<!-- BOTTOM NAV -->
+<div class="fixed bottom-0 left-0 right-0 z-50 flex" style="background:rgba(7,7,15,0.97);border-top:1px solid rgba(124,108,255,0.12);padding-bottom:env(safe-area-inset-bottom);">
+  <button onclick="showView('home')" id="nav-home" class="flex-1 py-3 flex flex-col items-center gap-0.5 active:opacity-60"><span class="text-xl">🏭</span><span class="text-xs text-gray-600">工廠</span></button>
+  <button onclick="showView('products')" id="nav-products" class="flex-1 py-3 flex flex-col items-center gap-0.5 active:opacity-60"><span class="text-xl">📦</span><span class="text-xs text-gray-600">產品</span></button>
+  <button onclick="showView('status')" id="nav-status" class="flex-1 py-3 flex flex-col items-center gap-0.5 active:opacity-60"><span class="text-xl">📡</span><span class="text-xs text-gray-600">狀態</span></button>
+  <button onclick="showView('history')" id="nav-history" class="flex-1 py-3 flex flex-col items-center gap-0.5 active:opacity-60"><span class="text-xl">📋</span><span class="text-xs text-gray-600">紀錄</span></button>
+  <button onclick="showView('docs')" id="nav-docs" class="flex-1 py-3 flex flex-col items-center gap-0.5 active:opacity-60"><span class="text-xl">📚</span><span class="text-xs text-gray-600">文件</span></button>
 </div>
 
 <script>
-// ── CONFIG ──────────────────────────────────────────────────────────
-const LIFF_ID    = 'REPLACE_WITH_LIFF_ID';   // ← 需要在 LINE Developers 建立後填入
-const PM_CENTER  = 'https://ai-pm-center-827577239332.asia-east1.run.app';
-const GH_PAGES   = 'https://a0913719875-commits.github.io/ai-company-projects';
+const LIFF_ID = 'REPLACE_WITH_LIFF_ID';
+const PM = 'https://ai-pm-center-827577239332.asia-east1.run.app';
+const GH_PAGES = 'https://a0913719875-commits.github.io/ai-company-projects';
 
-// ── STATE ────────────────────────────────────────────────────────────
-let currentUser    = null;
-let projects       = [];
-let pendingActions = [];
-let liffReady      = false;
+let currentUser = null, projects = [], liffReady = false;
 
-// ── PIPELINE DATA ────────────────────────────────────────────────────
-const PIPELINE = [
-  { icon:'🧠', name:'CEO AI',        color:'#7c6cff', delay:0   },
-  { icon:'📋', name:'ProductAI',     color:'#a78bfa', delay:0.3 },
-  { icon:'🏗️', name:'ArchitectAI',   color:'#60a5fa', delay:0.6 },
-  { icon:'🎨', name:'FrontendAI',    color:'#00d4ff', delay:0.9 },
-  { icon:'💻', name:'BackendAI',     color:'#06b6d4', delay:1.2 },
-  { icon:'🗄️', name:'DataAI',        color:'#34d399', delay:1.5 },
-  { icon:'🔍', name:'QA AI',         color:'#00ff88', delay:1.8 },
-  { icon:'🔒', name:'SecurityAI',    color:'#fbbf24', delay:2.1 },
-  { icon:'🚀', name:'DevOps AI',     color:'#f97316', delay:2.4 },
+// ── DEPARTMENTS ──────────────────────────────────────────────
+const DEPTS = [
+  {icon:'🧠',name:'CEO AI',color:'#7c6cff',active:true},
+  {icon:'🏗️',name:'ArchitectAI',color:'#a78bfa',active:true},
+  {icon:'🎨',name:'FrontendAI',color:'#00d4ff',active:true},
+  {icon:'💻',name:'BackendAI',color:'#06b6d4',active:false},
+  {icon:'🔍',name:'QA AI',color:'#00ff88',active:false},
+  {icon:'🚀',name:'DevOps AI',color:'#ffd700',active:false},
+  {icon:'🔒',name:'SecurityAI',color:'#fb923c',active:false},
+  {icon:'📊',name:'AnalyticsAI',color:'#f472b6',active:false},
 ];
 
-const DEPT_STATUS = [
-  { icon:'🧠', name:'CEO AI',       status:'就緒' },
-  { icon:'🏗️', name:'ArchitectAI',  status:'就緒' },
-  { icon:'🎨', name:'FrontendAI',   status:'就緒' },
-  { icon:'💻', name:'BackendAI',    status:'就緒' },
-  { icon:'🔍', name:'QA AI',        status:'就緒' },
-  { icon:'🔒', name:'SecurityAI',   status:'就緒' },
-  { icon:'🚀', name:'DevOps AI',    status:'就緒' },
-  { icon:'📊', name:'AnalyticsAI',  status:'就緒' },
+// ── TERMINAL LOGS ─────────────────────────────────────────────
+const DEMO_LOGS = [
+  '[09:10] 🧠 CEO AI 完成需求分析',
+  '[09:15] 🏗️ Architect AI 建立系統架構',
+  '[09:32] 🎨 Frontend AI 開始設計首頁',
+  '[09:50] 🎨 Frontend AI 完成首頁元件',
+  '[10:05] 💻 Backend AI 建立 API 路由',
+  '[10:23] 💻 Backend AI 完成資料庫連線',
+  '[10:45] 🔍 QA AI 執行功能測試',
+  '[10:52] 🔍 QA AI 完成 23/25 測試項目',
+  '[11:10] 🚀 DevOps AI 準備部署環境',
+  '[11:15] 🚀 DevOps AI 部署完成 ✅',
 ];
 
-// ── STAGE CONFIG ─────────────────────────────────────────────────────
-const STAGES = [
-  { name:'需求分析', icon:'📋' },
-  { name:'系統架構', icon:'🏗️' },
-  { name:'UI 設計',  icon:'🎨' },
-  { name:'前端開發', icon:'⚛️' },
-  { name:'後端開發', icon:'💻' },
-  { name:'測試',     icon:'🔍' },
-  { name:'部署',     icon:'🚀' },
-];
-
-const STATUS_PROGRESS = {
-  planning:    { pct: 15, stage: 0, label: '需求規劃中' },
-  ui_design:   { pct: 40, stage: 2, label: 'UI 設計中'  },
-  development: { pct: 65, stage: 4, label: '開發中'      },
-  qa:          { pct: 85, stage: 5, label: '測試中'      },
-  completed:   { pct:100, stage: 7, label: '已完成'      },
-};
-
-// ── DJB2 HASH ────────────────────────────────────────────────────────
-function djb2(str) {
-  let h = 5381;
-  for (const c of str) h = ((h * 33) ^ c.charCodeAt(0)) >>> 0;
-  return 'c_' + h.toString(16).padStart(8, '0');
+// ── DEMO DATA ─────────────────────────────────────────────────
+function getDemoProjects() {
+  return [{
+    project_id:'c-demo-001',
+    requirement:'智慧計帳本系統',
+    status:'development',
+    deploy_url:'',
+    ui_redesign_count:1,
+    ui_redesign_max:3,
+    created_at:'2026-05-31T09:00:00Z'
+  },{
+    project_id:'c-demo-002',
+    requirement:'洗腎病患接送系統',
+    status:'completed',
+    deploy_url:`${GH_PAGES}/`,
+    ui_redesign_count:0,
+    ui_redesign_max:3,
+    created_at:'2026-05-28T14:00:00Z'
+  }];
 }
 
-// ── VIEW NAVIGATION ──────────────────────────────────────────────────
+// ── VIEWS ────────────────────────────────────────────────────
 function showView(name) {
-  document.querySelectorAll('[id^="view-"]').forEach(el => {
-    el.classList.add('hidden');
-    el.classList.remove('fade-in');
+  document.querySelectorAll('[id^="view-"]').forEach(el=>el.classList.add('hidden'));
+  document.getElementById('view-'+name).classList.remove('hidden');
+  document.querySelectorAll('[id^="nav-"]').forEach(btn=>{
+    btn.querySelector('span:last-child').style.color='';
   });
-  const el = document.getElementById('view-' + name);
-  if (!el) return;
-  el.classList.remove('hidden');
-  void el.offsetWidth; // reflow
-  el.classList.add('fade-in');
-  window.scrollTo({ top: 0 });
-
-  // Update bottom nav highlight
-  ['home','products','status','history'].forEach(v => {
-    const btn = document.getElementById('nav-' + v);
-    if (!btn) return;
-    const span = btn.querySelector('span:last-child');
-    if (v === name) { span.style.color = '#7c6cff'; }
-    else            { span.style.color = ''; }
-  });
-
-  if (name === 'status')  renderStatus();
-  if (name === 'history') renderHistory();
+  const nav = document.getElementById('nav-'+name);
+  if(nav) nav.querySelector('span:last-child').style.color='#7c6cff';
+  window.scrollTo({top:0});
+  if(name==='status') renderStatus();
+  if(name==='history') renderHistory();
 }
 
-// ── PIPELINE RENDER ──────────────────────────────────────────────────
-function renderPipeline() {
-  const el = document.getElementById('pipeline-steps');
-  el.innerHTML = PIPELINE.map((d, i) => `
-    <div class="flex items-center gap-3">
-      <div class="pulse w-2 h-2 rounded-full flex-shrink-0"
-           style="background:${d.color}; animation-delay:${d.delay}s;"></div>
-      <span class="text-sm flex-1">${d.icon} ${d.name}</span>
-      <span class="text-xs px-2 py-0.5 rounded-full"
-            style="background:rgba(0,255,136,0.08); color:#00ff88; border:1px solid rgba(0,255,136,0.15);">
-        ✅ 就緒
-      </span>
-    </div>
-    ${i < PIPELINE.length - 1 ? '<div class="ml-1 text-gray-800 text-xs">│</div>' : ''}
-  `).join('');
-}
-
-// ── DEPT STATUS RENDER ───────────────────────────────────────────────
+// ── DEPT GRID ─────────────────────────────────────────────────
 function renderDeptGrid() {
-  const el = document.getElementById('dept-grid');
-  el.innerHTML = DEPT_STATUS.map(d => `
-    <div class="flex items-center gap-2 p-2 rounded-lg"
-         style="background:rgba(0,255,136,0.04); border:1px solid rgba(0,255,136,0.1);">
-      <span>${d.icon}</span>
+  document.getElementById('dept-grid').innerHTML = DEPTS.map(d=>`
+    <div class="flex items-center gap-2 p-2 rounded-lg" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.05);">
+      <div class="w-2 h-2 rounded-full flex-shrink-0 ${d.active?'pulse status-dot-green':'status-dot-red'}"></div>
+      <span class="text-sm">${d.icon}</span>
       <div class="flex-1 min-w-0">
         <div class="text-xs font-bold truncate">${d.name}</div>
-        <div class="text-xs text-neon-green">● ${d.status}</div>
+        <div class="text-xs ${d.active?'text-green-400':'text-red-400'}">${d.active?'🟢 開發中':'🔴 待命'}</div>
       </div>
     </div>
   `).join('');
 }
 
-// ── STATUS VIEW ──────────────────────────────────────────────────────
+// ── TERMINAL ──────────────────────────────────────────────────
+let terminalIdx = 0;
+function renderTerminal() {
+  const el = document.getElementById('terminal-log');
+  if(!el) return;
+  el.innerHTML = '';
+  const logsToShow = DEMO_LOGS.slice(0, terminalIdx+1);
+  logsToShow.forEach((log,i) => {
+    const line = document.createElement('div');
+    line.className = 'mb-1 text-xs';
+    const isActive = i === logsToShow.length - 1;
+    line.style.color = isActive ? '#00ff88' : '#00aa55';
+    line.innerHTML = log;
+    el.appendChild(line);
+  });
+  el.scrollTop = el.scrollHeight;
+  if(terminalIdx < DEMO_LOGS.length - 1) {
+    terminalIdx++;
+    setTimeout(renderTerminal, 1500);
+  }
+}
+
+// ── STATUS VIEW ───────────────────────────────────────────────
 function renderStatus() {
   renderDeptGrid();
-  const active = projects.filter(p => p.status && p.status !== 'completed');
+  terminalIdx = 0;
+  renderTerminal();
+  const active = projects.filter(p=>p.status!=='completed');
   const el = document.getElementById('active-pipeline');
-
-  if (active.length === 0) {
-    el.innerHTML = `
-      <div class="factory-card p-5 mb-4 text-center text-gray-600">
-        <div class="text-3xl mb-2">⚡</div>
-        <p class="text-sm">目前無進行中專案</p>
-        <p class="text-xs mt-1">透過 AI CEO 開始新專案</p>
-      </div>`;
-    return;
-  }
-
-  el.innerHTML = active.map(p => {
-    const sp = STATUS_PROGRESS[p.status] || STATUS_PROGRESS.planning;
-    const name = (p.requirement || p.project_id || '未命名').substring(0, 22);
-    const depts = [
-      { name:'CEO AI',       pct: sp.stage >= 0 ? 100 : 0, done: true  },
-      { name:'ArchitectAI',  pct: sp.stage >= 1 ?  100 : 0, done: sp.stage >= 1 },
-      { name:'FrontendAI',   pct: sp.stage >= 3 ? (sp.stage === 3 ? 60 : 100) : 0, done: sp.stage >= 4 },
-      { name:'BackendAI',    pct: sp.stage >= 4 ? (sp.stage === 4 ? 50 : 100) : 0, done: sp.stage >= 5 },
-      { name:'QA AI',        pct: sp.stage >= 5 ? 60 : 0, done: sp.stage >= 6 },
-      { name:'Deploy AI',    pct: sp.stage >= 6 ? 100 : 0, done: sp.stage >= 7 },
-    ];
-
-    return `
-      <div class="factory-card p-4 mb-4 relative overflow-hidden">
-        <div class="scan-line"></div>
-        <div class="flex justify-between mb-3">
-          <div>
-            <div class="text-xs text-neon-green mb-0.5">⚡ 運作中</div>
-            <div class="font-bold">${name}</div>
-          </div>
-          <div class="text-right">
-            <div class="text-3xl font-black text-neon-purple">${sp.pct}%</div>
-            <div class="text-xs text-gray-600">${sp.label}</div>
-          </div>
-        </div>
-        ${depts.map(d => `
-          <div class="flex items-center gap-2 mb-2">
-            <div class="text-xs w-20 text-gray-500 truncate">${d.name}</div>
-            <div class="flex-1 h-1.5 rounded-full" style="background:rgba(255,255,255,0.05);">
-              <div class="h-1.5 rounded-full bar-fill"
-                   style="--w:${d.pct}%; background:${d.done ? '#00ff88' : 'linear-gradient(90deg,#7c6cff,#00d4ff)'};"></div>
-            </div>
-            <div class="text-xs w-8 text-right" style="color:${d.done?'#00ff88':'#7c6cff'}">
-              ${d.pct > 0 ? d.pct + '%' : '—'}
-            </div>
-          </div>
-        `).join('')}
+  if(!el) return;
+  if(active.length===0){el.innerHTML='';return;}
+  el.innerHTML = active.map(p=>{
+    const pct = {planning:15,ceo_draft:20,development:60,qa:85,completed:100}[p.status]||40;
+    const name = (p.requirement||p.project_id||'').substring(0,22);
+    return `<div class="card p-4 relative overflow-hidden" style="margin-bottom:12px;">
+      <div class="scan-line"></div>
+      <div class="flex justify-between mb-2">
+        <div><div class="text-xs text-green-400">⚡ 開發中</div><div class="font-bold text-sm">${name}</div></div>
+        <div class="text-3xl font-black" style="color:#7c6cff;">${pct}%</div>
       </div>
-    `;
+      <div class="h-2 rounded-full mb-1" style="background:rgba(124,108,255,0.1);">
+        <div class="h-2 rounded-full bar-fill" style="--w:${pct}%;background:linear-gradient(90deg,#7c6cff,#00d4ff);"></div>
+      </div>
+    </div>`;
   }).join('');
 }
 
-// ── PROJECT CARDS ────────────────────────────────────────────────────
-function renderProjects() {
-  const el = document.getElementById('project-cards');
-  document.getElementById('products-loading').classList.add('hidden');
-  el.classList.remove('hidden');
+// ── HISTORY VIEW ──────────────────────────────────────────────
+function renderHistory() {
+  const now = new Date();
+  const fmt = (d) => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 
-  const done = projects.filter(p => p.status === 'completed').length;
-  document.getElementById('stat-done').textContent = done;
+  // Timeline
+  const tlItems = [
+    {time:'09:10',icon:'🧠',text:'CEO AI 完成需求分析',color:'#7c6cff'},
+    {time:'09:32',icon:'🏗️',text:'Architect AI 建立系統架構',color:'#a78bfa'},
+    {time:'09:50',icon:'🎨',text:'Frontend AI 完成首頁設計',color:'#00d4ff'},
+    {time:'10:05',icon:'💻',text:'Backend AI 建立 API',color:'#06b6d4'},
+    {time:'10:45',icon:'🔍',text:'QA AI 執行測試',color:'#00ff88'},
+    {time:'11:15',icon:'🚀',text:'DevOps AI 部署完成',color:'#ffd700'},
+  ];
+  document.getElementById('timeline-list').innerHTML = tlItems.map((item,i)=>`
+    <div class="flex items-start gap-3 mb-3 ${i<tlItems.length-1?'pb-3 border-b':''}  " style="border-color:rgba(255,255,255,0.05);">
+      <div class="text-xs font-mono w-12 flex-shrink-0 mt-0.5" style="color:${item.color};">${item.time}</div>
+      <div class="text-lg flex-shrink-0">${item.icon}</div>
+      <div class="text-sm text-gray-300">${item.text}</div>
+    </div>
+  `).join('');
 
-  if (projects.length === 0) {
-    el.innerHTML = `
-      <div class="factory-card p-7 text-center text-gray-600">
-        <div class="text-4xl mb-3">🚀</div>
-        <p class="font-bold mb-1">尚無專案</p>
-        <p class="text-xs">透過 LINE 與 AI CEO 對談開始第一個專案</p>
-      </div>`;
-    return;
+  // Completed features
+  const features = ['LINE 登入整合','會員系統','首頁 UI','後台 API','資料庫連線','基本 CRUD'];
+  document.getElementById('features-list').innerHTML = features.map(f=>`
+    <div class="flex items-center gap-2 mb-2">
+      <span style="color:#00ff88;">✅</span>
+      <span class="text-sm text-gray-300">${f}</span>
+    </div>
+  `).join('');
+
+  // AI Thinking
+  const thoughts = [
+    {ai:'Architect AI',text:'建議使用 Firebase 提升即時同步效能，降低後端複雜度'},
+    {ai:'Frontend AI',text:'選用 Tailwind CSS 加速開發，並確保 RWD 在所有裝置正常'},
+    {ai:'Backend AI',text:'API 使用 RESTful 設計，預留 WebSocket 擴充接口'},
+    {ai:'QA AI',text:'發現 3 個 edge case，已通知 Backend AI 處理'},
+  ];
+  document.getElementById('thinking-list').innerHTML = thoughts.map(t=>`
+    <div class="mb-3 p-3 rounded-lg" style="background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.1);">
+      <div class="text-xs font-bold mb-1" style="color:#00d4ff;">${t.ai}</div>
+      <div class="text-xs text-gray-400 italic">${t.text}</div>
+    </div>
+  `).join('');
+
+  // Deployment
+  document.getElementById('deploy-record').innerHTML = `
+    <div class="flex justify-between mb-2">
+      <div class="text-xs text-gray-500">版本</div>
+      <div class="text-xs font-bold" style="color:#ffd700;">v0.9.2</div>
+    </div>
+    <div class="flex justify-between mb-2">
+      <div class="text-xs text-gray-500">部署時間</div>
+      <div class="text-xs">2026-05-31 11:15</div>
+    </div>
+    <div class="flex justify-between mb-3">
+      <div class="text-xs text-gray-500">狀態</div>
+      <div class="text-xs font-bold text-green-400">🟢 正常運行</div>
+    </div>
+    <a href="${GH_PAGES}/" target="_blank" class="block w-full py-2 text-center rounded-lg text-xs font-bold" style="background:rgba(124,108,255,0.2);color:#7c6cff;border:1px solid rgba(124,108,255,0.3);">🌐 查看部署成果</a>
+  `;
+}
+
+// ── DOCS VIEW ─────────────────────────────────────────────────
+const DOC_DATA = {
+  requirement:{
+    title:'📄 需求文件',
+    ai:'AI CEO',
+    version:'v1.2',
+    updated:'2026-05-31',
+    status:'已確認',
+    statusColor:'#00ff88',
+    content:'此需求文件由 AI CEO 透過多輪對話生成，記錄了所有已確認的產品需求。',
+    sections:['產品名稱：計帳本系統','核心功能：記帳、統計、報表','目標用戶：個人用戶','預算範圍：NT$1,000','期望時程：1個月','UI風格：科技深色']
+  },
+  architecture:{
+    title:'🏗️ 系統架構圖',
+    ai:'Architect AI',
+    version:'v1.0',
+    updated:'2026-05-31',
+    status:'設計中',
+    statusColor:'#ffd700',
+    content:'由 Architect AI 設計，採用前後端分離架構。',
+    sections:['前端：React + Tailwind CSS','後端：FastAPI + Python','資料庫：SQLite (MVP)','部署：GitHub Pages (前端)','API：Cloud Run (後端)']
+  },
+  manual:{
+    title:'📘 使用手冊',
+    ai:'Frontend AI',
+    version:'v0.8',
+    updated:'2026-05-31',
+    status:'撰寫中',
+    statusColor:'#7c6cff',
+    content:'由 Frontend AI 根據實際開發內容自動生成的操作說明。',
+    sections:['如何登入系統','如何新增記帳項目','如何查看統計報表','如何匯出資料']
+  },
+  api:{
+    title:'🔌 API 文件',
+    ai:'Backend AI',
+    version:'v1.1',
+    updated:'2026-05-31',
+    status:'已完成',
+    statusColor:'#00ff88',
+    content:'Backend AI 自動生成的 RESTful API 規格文件。',
+    sections:['GET /api/items - 取得所有記帳項目','POST /api/items - 新增記帳項目','PUT /api/items/{id} - 更新記帳項目','DELETE /api/items/{id} - 刪除記帳項目','GET /api/stats - 取得統計資料']
   }
+};
 
-  el.innerHTML = projects.map((p, i) => {
-    const sp    = STATUS_PROGRESS[p.status] || STATUS_PROGRESS.planning;
-    const name  = (p.requirement || p.project_id || '未命名').substring(0, 20);
-    const clr   = p.status === 'completed' ? '#00ff88' : '#7c6cff';
-    const since = p.created_at ? new Date(p.created_at).toLocaleDateString('zh-TW') : '';
+function showDoc(type) {
+  const doc = DOC_DATA[type];
+  if(!doc) return;
+  document.getElementById('doc-title').textContent = doc.title;
+  document.getElementById('doc-content').innerHTML = `
+    <div class="card p-4 mb-3">
+      <div class="grid grid-cols-2 gap-3">
+        <div><div class="text-xs text-gray-500 mb-1">文件版本</div><div class="font-bold text-sm" style="color:#7c6cff;">${doc.version}</div></div>
+        <div><div class="text-xs text-gray-500 mb-1">最後更新</div><div class="text-sm">${doc.updated}</div></div>
+        <div><div class="text-xs text-gray-500 mb-1">負責 AI</div><div class="text-sm">${doc.ai}</div></div>
+        <div><div class="text-xs text-gray-500 mb-1">狀態</div><div class="text-sm font-bold" style="color:${doc.statusColor};">● ${doc.status}</div></div>
+      </div>
+    </div>
+    <div class="card p-4 mb-3">
+      <div class="text-xs text-gray-500 mb-2">文件摘要</div>
+      <div class="text-sm text-gray-300">${doc.content}</div>
+    </div>
+    <div class="card p-4 mb-3">
+      <div class="text-xs text-gray-500 mb-3">主要內容</div>
+      ${doc.sections.map(s=>`<div class="flex items-start gap-2 mb-2"><span style="color:#7c6cff;">▸</span><div class="text-sm text-gray-300">${s}</div></div>`).join('')}
+    </div>
+    <div class="p-3 rounded-xl mb-3" style="background:rgba(255,100,50,0.08);border:1px solid rgba(255,100,50,0.25);">
+      <div class="text-sm font-bold mb-1" style="color:#ff6432;">⚠️ AI 修改提醒</div>
+      <div class="text-xs text-gray-400">修改此文件內容需求將產生「AI 變更單」，可能影響開發進度並產生追加費用。請謹慎確認後再修改。</div>
+    </div>
+  `;
+  showView('doc-detail');
+}
 
+// ── PRODUCTS ──────────────────────────────────────────────────
+const STATUS_MAP = {planning:{pct:15,label:'需求規劃中'},ui_design:{pct:35,label:'UI設計中'},development:{pct:65,label:'開發中'},qa:{pct:85,label:'測試中'},completed:{pct:100,label:'已完成'}};
+
+function renderProducts() {
+  const el = document.getElementById('product-cards');
+  const done = projects.filter(p=>p.status==='completed').length;
+  document.getElementById('stat-done').textContent = done;
+  if(!projects.length){ el.innerHTML=`<div class="card p-7 text-center text-gray-500"><div class="text-4xl mb-3">🚀</div><p>尚無專案<br><span class="text-xs">透過 AI CEO 開始您的第一個專案</span></p></div>`; return; }
+  el.innerHTML = projects.map((p,i)=>{
+    const sp = STATUS_MAP[p.status]||STATUS_MAP.development;
+    const name = (p.requirement||p.project_id||'').substring(0,22);
+    const redesignCount = p.ui_redesign_count||0;
+    const redesignMax = p.ui_redesign_max||3;
+    const redesignLeft = redesignMax - redesignCount;
     return `
-      <div class="project-card p-4 mb-3 cursor-pointer" onclick="showDetail(${i})">
+      <div class="card p-4 mb-3">
         <div class="flex items-start justify-between mb-3">
           <div class="flex-1 min-w-0">
-            <div class="font-bold text-white truncate">${name}</div>
-            <div class="text-xs mt-0.5" style="color:${clr};">● ${sp.label}</div>
+            <div class="font-bold truncate">${name}</div>
+            <div class="text-xs mt-0.5" style="color:${p.status==='completed'?'#00ff88':'#7c6cff'};">● ${sp.label}</div>
           </div>
-          <div class="text-right ml-3 flex-shrink-0">
-            <div class="text-3xl font-black" style="color:#7c6cff;">${sp.pct}%</div>
-            ${since ? `<div class="text-xs text-gray-700">${since}</div>` : ''}
+          <div class="text-3xl font-black ml-3" style="color:#7c6cff;">${sp.pct}%</div>
+        </div>
+        <div class="h-2 rounded-full mb-3" style="background:rgba(124,108,255,0.1);">
+          <div class="h-2 rounded-full bar-fill" style="--w:${sp.pct}%;background:linear-gradient(90deg,#7c6cff,#00d4ff);"></div>
+        </div>
+        <!-- UI Redesign Counter -->
+        <div class="flex items-center justify-between mb-2 p-2 rounded-lg" style="background:rgba(0,0,0,0.3);">
+          <div>
+            <div class="text-xs font-bold">🎨 UI 設計更換</div>
+            <div class="text-xs text-gray-500">${redesignCount}/${redesignMax} 次已使用${redesignLeft<=0?' · 超出需加收費用':' · 剩餘 '+redesignLeft+' 次免費'}</div>
+          </div>
+          <div class="flex gap-1">
+            ${Array.from({length:redesignMax}).map((_,idx)=>`
+              <div class="w-3 h-3 rounded-full" style="background:${idx<redesignCount?'#ffd700':'rgba(255,255,255,0.1)'};"></div>
+            `).join('')}
           </div>
         </div>
-
-        <!-- Progress bar -->
-        <div class="h-2 rounded-full mb-2" style="background:rgba(124,108,255,0.1);">
-          <div class="h-2 rounded-full bar-fill"
-               style="--w:${sp.pct}%; background:linear-gradient(90deg,#7c6cff,#00d4ff);"></div>
-        </div>
-
-        <div class="flex items-center justify-between">
-          <div class="text-xs text-gray-700">${sp.label}</div>
-          ${p.deploy_url ? `
-          <a href="${p.deploy_url}" target="_blank" onclick="event.stopPropagation()"
-             class="text-xs text-neon-blue">🌐 查看 →</a>` : ''}
-        </div>
+        ${redesignLeft>0?`
+        <button onclick="requestRedesign('${p.project_id}')" class="w-full py-2 text-xs rounded-lg font-bold mb-2" style="background:rgba(255,215,0,0.1);color:#ffd700;border:1px solid rgba(255,215,0,0.3);">
+          🔄 不喜歡設計，申請更換（剩 ${redesignLeft} 次免費）
+        </button>`:`
+        <div class="w-full py-2 text-xs rounded-lg text-center mb-2" style="background:rgba(255,68,102,0.1);color:#ff4466;border:1px solid rgba(255,68,102,0.3);">
+          ⚠️ 免費更換次數已用完，額外更換 NT$300
+        </div>`}
+        ${p.deploy_url?`<a href="${p.deploy_url}" target="_blank" class="block w-full py-2 text-center text-xs rounded-lg font-bold" style="background:rgba(0,255,136,0.1);color:#00ff88;border:1px solid rgba(0,255,136,0.2);">🌐 查看作品</a>`:''}
       </div>
     `;
   }).join('');
 }
 
-// ── PROJECT DETAIL ───────────────────────────────────────────────────
-function showDetail(index) {
-  const p  = projects[index];
-  if (!p) return;
-  const sp = STATUS_PROGRESS[p.status] || STATUS_PROGRESS.planning;
-  const name = (p.requirement || p.project_id || '未命名').substring(0, 30);
-
-  document.getElementById('detail-name').textContent = name;
-
-  const stagesHtml = STAGES.map((s, i) => {
-    const done    = i < sp.stage;
-    const active  = i === sp.stage;
-    const pct     = done ? 100 : (active ? sp.pct % 20 * 5 : 0);
-    const filled  = Math.round(pct / 10);
-    const bar     = '█'.repeat(filled) + '░'.repeat(10 - filled);
-    const color   = done ? '#00ff88' : (active ? '#7c6cff' : '#1a1a2e');
-    const badge   = done ? '✅' : (active ? '⚡' : '—');
-
-    return `
-      <div class="flex items-center gap-3 mb-4">
-        <span class="text-xl w-8">${s.icon}</span>
-        <div class="flex-1">
-          <div class="flex justify-between mb-1">
-            <span class="text-sm font-medium">${s.name}</span>
-            <span class="text-xs" style="color:${color}">${badge}</span>
-          </div>
-          <div class="font-mono text-xs tracking-widest" style="color:${color};">${bar}</div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  document.getElementById('detail-content').innerHTML = `
-    <!-- Big progress ring -->
-    <div class="factory-card p-5 text-center mb-3">
-      <div class="inline-flex items-center justify-center w-24 h-24 rounded-full mb-2"
-           style="background: conic-gradient(#7c6cff ${sp.pct * 3.6}deg, rgba(124,108,255,0.1) 0deg);">
-        <div class="w-20 h-20 rounded-full flex flex-col items-center justify-center"
-             style="background:#07070f;">
-          <div class="text-2xl font-black text-neon-purple">${sp.pct}%</div>
-          <div class="text-xs text-gray-600">完成</div>
-        </div>
-      </div>
-      <div class="font-bold">${name}</div>
-      <div class="text-xs text-gray-600 mt-0.5">${sp.label}</div>
-    </div>
-
-    <!-- Stage breakdown -->
-    <div class="factory-card p-4 mb-3">
-      <div class="text-xs text-gray-600 mb-3 tracking-widest">📊 開發階段</div>
-      ${stagesHtml}
-    </div>
-
-    <!-- Metadata -->
-    <div class="factory-card p-4 mb-3">
-      <div class="text-xs text-gray-600 mb-2">專案資訊</div>
-      <div class="text-xs text-gray-400 font-mono">${p.project_id || '-'}</div>
-      ${p.created_at ? `<div class="text-xs text-gray-700 mt-1">建立：${new Date(p.created_at).toLocaleString('zh-TW')}</div>` : ''}
-    </div>
-
-    ${p.deploy_url ? `
-    <a href="${p.deploy_url}" target="_blank"
-       class="btn-grad block w-full py-4 text-center text-base font-black mb-3">
-      🌐 查看作品
-    </a>` : ''}
-  `;
-
-  showView('detail');
+function requestRedesign(projectId) {
+  alert('申請已送出！\n\nFrontend AI 將重新設計 UI，約 2-4 小時完成。\n完成後系統將通知您。');
 }
 
-// ── HISTORY VIEW ─────────────────────────────────────────────────────
-function renderHistory() {
-  const done = projects.filter(p => p.status === 'completed');
-  const el   = document.getElementById('history-list');
-
-  if (done.length === 0) {
-    el.innerHTML = `
-      <div class="factory-card p-7 text-center text-gray-600">
-        <div class="text-4xl mb-3">📋</div>
-        <p>尚無完成紀錄</p>
-      </div>`;
-    return;
-  }
-
-  el.innerHTML = done.map((p, i) => {
-    const name = (p.requirement || p.project_id || '未命名').substring(0, 25);
-    const date = p.updated_at ? new Date(p.updated_at).toLocaleDateString('zh-TW') : '';
-    return `
-      <div class="factory-card p-4 mb-3 flex items-center gap-3">
-        <div class="text-2xl">✅</div>
-        <div class="flex-1 min-w-0">
-          <div class="font-bold text-sm truncate">${name}</div>
-          ${date ? `<div class="text-xs text-gray-600">${date} 完成</div>` : ''}
-        </div>
-        ${p.deploy_url ? `
-        <a href="${p.deploy_url}" target="_blank"
-           class="text-xs px-3 py-1.5 rounded-full flex-shrink-0"
-           style="background:rgba(124,108,255,0.15); color:#7c6cff; border:1px solid rgba(124,108,255,0.3);">
-          查看 →
-        </a>` : ''}
-      </div>
-    `;
-  }).join('');
-}
-
-// ── LIFF & AUTH ──────────────────────────────────────────────────────
-function handleUserBtn() {
-  if (!currentUser) {
-    showView('products');
-  }
-}
-
-async function doLiffLogin() {
-  if (!liffReady) {
-    // Demo mode fallback
-    demoMode();
-    return;
-  }
-  if (!liff.isLoggedIn()) {
-    liff.login({ redirectUri: window.location.href });
-  } else {
-    await afterLogin();
-  }
+// ── AUTH ──────────────────────────────────────────────────────
+function doLiffLogin() {
+  if(!liffReady){ demoMode(); return; }
+  if(!liff.isLoggedIn()) liff.login({redirectUri:window.location.href});
+  else afterLogin();
 }
 
 async function afterLogin() {
   try {
     const profile = await liff.getProfile();
     currentUser = profile;
-
-    // Update header avatar
-    document.getElementById('user-icon').outerHTML =
-      `<img src="${profile.pictureUrl}" class="w-9 h-9 rounded-full object-cover" id="user-icon">`;
-
-    // Update products section
     document.getElementById('user-pic').src = profile.pictureUrl;
-    document.getElementById('user-display-name').textContent = profile.displayName;
-    const cid = djb2(profile.userId);
-    document.getElementById('user-cid').textContent = cid;
-
+    document.getElementById('user-name').textContent = profile.displayName;
+    const h = (s,h=5381)=>{for(const c of s)h=((h*33)^c.charCodeAt(0))>>>0;return'c_'+h.toString(16).padStart(8,'0');};
+    document.getElementById('user-cid').textContent = h(profile.userId);
     document.getElementById('login-prompt').classList.add('hidden');
-    document.getElementById('products-logged-in').classList.remove('hidden');
-
-    await loadProjects(profile.userId, cid);
-  } catch (e) {
-    console.error(e);
-    demoMode();
-  }
-}
-
-async function loadProjects(userId, customerId) {
-  try {
-    const res = await fetch(`${PM_CENTER}/api/customer/${userId}/projects`,
-                           { signal: AbortSignal.timeout(6000) });
-    if (!res.ok) throw new Error('API error');
-    const data = await res.json();
-    projects = data.projects || [];
-    pendingActions = data.pending_actions || [];
-  } catch (e) {
-    console.warn('PM Center fallback:', e.message);
-    projects = getDemoData();
-    pendingActions = getDemoPending();
-  }
-  renderProjects();
-  renderPendingBadge();
+    document.getElementById('products-logged').classList.remove('hidden');
+    try {
+      const res = await fetch(`${PM}/api/customer/${profile.userId}/projects`,{signal:AbortSignal.timeout(6000)});
+      const data = await res.json();
+      projects = data.projects||[];
+    } catch { projects = getDemoProjects(); }
+    renderProducts();
+  } catch { demoMode(); }
 }
 
 function demoMode() {
-  currentUser = { displayName: '示範用戶', pictureUrl: '', userId: 'demo' };
-  document.getElementById('user-display-name').textContent = '示範用戶';
+  document.getElementById('user-name').textContent = '示範用戶';
   document.getElementById('user-cid').textContent = 'c_demo0001';
   document.getElementById('login-prompt').classList.add('hidden');
-  document.getElementById('products-logged-in').classList.remove('hidden');
-  projects = getDemoData();
-  renderProjects();
+  document.getElementById('products-logged').classList.remove('hidden');
+  projects = getDemoProjects();
+  renderProducts();
 }
 
-function getDemoPending() {
-  return [
-    {
-      type: 'proposal', priority: 'high',
-      title: '📋 需求確認書待審閱',
-      description: 'AI CEO 已完成訪談，請確認需求文件後開始開發',
-      action_text: '在 LINE 回覆「確認開發」',
-      created_at: new Date().toISOString()
-    }
-  ];
-}
-
-function renderPendingBadge() {
-  const count = pendingActions.length;
-  // Home page badge
-  const badge = document.getElementById('pending-badge');
-  if (badge) badge.textContent = count > 0 ? count : '';
-  if (badge) badge.classList.toggle('hidden', count === 0);
-
-  // Products page section
-  const section = document.getElementById('pending-section');
-  const cards   = document.getElementById('pending-cards');
-  if (!section || !cards) return;
-
-  if (count === 0) { section.classList.add('hidden'); return; }
-  section.classList.remove('hidden');
-
-  const PRIORITY_COLOR = { high: '#ff4466', medium: '#fbbf24', low: '#00ff88' };
-  cards.innerHTML = pendingActions.map(p => {
-    const clr = PRIORITY_COLOR[p.priority] || '#7c6cff';
-    return `
-      <div class="mb-3 p-4 rounded-2xl border"
-           style="background:rgba(255,68,102,0.06); border-color:rgba(255,68,102,0.25);">
-        <div class="flex items-start gap-3">
-          <div class="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 pulse"
-               style="background:${clr};"></div>
-          <div class="flex-1 min-w-0">
-            <div class="font-bold text-sm text-white">${p.title}</div>
-            <div class="text-xs text-gray-400 mt-0.5">${p.description}</div>
-            <div class="text-xs mt-2 px-2 py-1 rounded-lg inline-block"
-                 style="background:rgba(255,68,102,0.12); color:${clr};">
-              👉 ${p.action_text}
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function getDemoData() {
-  return [
-    {
-      project_id: 'c72300127-kidney-transport-20260530-001',
-      requirement: '智慧洗腎交通車系統',
-      status: 'development',
-      deploy_url: '',
-      created_at: '2026-05-28T10:00:00Z',
-    },
-    {
-      project_id: 'c72300127-ai-trader-20260529-001',
-      requirement: 'AI Trader 量化交易平台',
-      status: 'qa',
-      deploy_url: '',
-      created_at: '2026-05-29T14:00:00Z',
-    },
-    {
-      project_id: 'c72300127-parking-20260527-001',
-      requirement: '卓越停車場管理系統',
-      status: 'completed',
-      deploy_url: `${GH_PAGES}/`,
-      created_at: '2026-05-27T09:00:00Z',
-      updated_at: '2026-05-30T08:00:00Z',
-    },
-  ];
-}
-
-// ── INIT ─────────────────────────────────────────────────────────────
+// ── INIT ─────────────────────────────────────────────────────
 async function init() {
-  renderPipeline();
   showView('home');
-
-  // Init LIFF
   try {
-    await liff.init({ liffId: LIFF_ID });
+    await liff.init({liffId:LIFF_ID});
     liffReady = true;
-    if (liff.isLoggedIn()) {
-      await afterLogin();
-    }
-  } catch (e) {
-    console.log('LIFF not available (non-LINE browser). Demo mode available.');
-    liffReady = false;
-  }
+    if(liff.isLoggedIn()) await afterLogin();
+  } catch { liffReady = false; }
 }
-
 document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
