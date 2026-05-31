@@ -253,18 +253,69 @@ const DEPTS = [
 ];
 
 // ── TERMINAL LOGS ─────────────────────────────────────────────
-const DEMO_LOGS = [
-  '[09:10] 🧠 CEO AI 完成需求分析',
-  '[09:15] 🏗️ Architect AI 建立系統架構',
-  '[09:32] 🎨 Frontend AI 開始設計首頁',
-  '[09:50] 🎨 Frontend AI 完成首頁元件',
-  '[10:05] 💻 Backend AI 建立 API 路由',
-  '[10:23] 💻 Backend AI 完成資料庫連線',
-  '[10:45] 🔍 QA AI 執行功能測試',
-  '[10:52] 🔍 QA AI 完成 23/25 測試項目',
-  '[11:10] 🚀 DevOps AI 準備部署環境',
-  '[11:15] 🚀 DevOps AI 部署完成 ✅',
-];
+const GH_OWNER = 'a0913719875-commits';
+const GH_REPO = 'market-ecommerce-app';
+let realLogs = [];
+let terminalLoaded = false;
+
+const STEP_ICONS = {
+  'Checkout': '📥', 'Setup': '⚙️', 'AI': '🤖', 'Python': '🐍',
+  'Issue': '📋', 'QA': '🔍', 'Push': '📤', 'GitHub': '🐙',
+  'Deploy': '🚀', 'Rollback': '⏪', 'Notify': '📡', 'Close': '✅'
+};
+function stepIcon(name) {
+  for (const [k,v] of Object.entries(STEP_ICONS)) if(name.includes(k)) return v;
+  return '⚡';
+}
+
+async function loadGitHubLogs() {
+  try {
+    const runsResp = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/actions/runs?per_page=3`);
+    const runsData = await runsResp.json();
+    const runs = (runsData.workflow_runs||[]).slice(0,3);
+    const logs = [];
+    for (const run of runs) {
+      const d = new Date(run.created_at);
+      const t = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      const status = run.status==='completed'?(run.conclusion==='success'?'✅':'❌'):'⏳';
+      logs.push(`[${t}] ${status} ${run.name||'Codex 開發'} #${run.run_number}`);
+      // Get jobs for latest run
+      if (run === runs[0]) {
+        try {
+          const jobsResp = await fetch(run.jobs_url);
+          const jobsData = await jobsResp.json();
+          for (const job of (jobsData.jobs||[]).slice(0,5)) {
+            for (const step of (job.steps||[]).slice(0,4)) {
+              if (step.status==='completed') {
+                const jt = step.completed_at ? new Date(step.completed_at) : d;
+                const jts = `${String(jt.getHours()).padStart(2,'0')}:${String(jt.getMinutes()).padStart(2,'0')}`;
+                const icon = stepIcon(step.name);
+                const sc = step.conclusion==='success'?'✅':'❌';
+                logs.push(`  [${jts}] ${icon} ${step.name} ${sc}`);
+              }
+            }
+          }
+        } catch {}
+      }
+    }
+    realLogs = logs.length ? logs : getFallbackLogs();
+  } catch {
+    realLogs = getFallbackLogs();
+  }
+  terminalLoaded = true;
+  terminalIdx = 0;
+  renderTerminal();
+}
+
+function getFallbackLogs() {
+  return [
+    '[--:--] 🔄 載入 GitHub Actions 記錄中...',
+    '[--:--] ⚡ AI Factory 已就緒',
+    '[--:--] 🤖 等待新的開發任務',
+  ];
+}
+
+const DEMO_LOGS = getFallbackLogs();
 
 // ── DEMO DATA ─────────────────────────────────────────────────
 function getDemoProjects() {
@@ -320,20 +371,23 @@ let terminalIdx = 0;
 function renderTerminal() {
   const el = document.getElementById('terminal-log');
   if(!el) return;
+  const logs = (terminalLoaded && realLogs.length) ? realLogs : DEMO_LOGS;
   el.innerHTML = '';
-  const logsToShow = DEMO_LOGS.slice(0, terminalIdx+1);
+  const logsToShow = logs.slice(0, terminalIdx+1);
   logsToShow.forEach((log,i) => {
     const line = document.createElement('div');
     line.className = 'mb-1 text-xs';
     const isActive = i === logsToShow.length - 1;
-    line.style.color = isActive ? '#00ff88' : '#00aa55';
-    line.innerHTML = log;
+    const isSuccess = log.includes('✅');
+    const isError = log.includes('❌');
+    line.style.color = isActive ? '#00ff88' : isError ? '#ff4466' : isSuccess ? '#00aa55' : '#008844';
+    line.textContent = log;
     el.appendChild(line);
   });
   el.scrollTop = el.scrollHeight;
-  if(terminalIdx < DEMO_LOGS.length - 1) {
+  if(terminalIdx < logs.length - 1) {
     terminalIdx++;
-    setTimeout(renderTerminal, 1500);
+    setTimeout(renderTerminal, 800);
   }
 }
 
@@ -341,7 +395,12 @@ function renderTerminal() {
 function renderStatus() {
   renderDeptGrid();
   terminalIdx = 0;
-  renderTerminal();
+  if (!terminalLoaded) {
+    renderTerminal();
+    loadGitHubLogs();
+  } else {
+    renderTerminal();
+  }
   const active = projects.filter(p=>p.status!=='completed');
   const el = document.getElementById('active-pipeline');
   if(!el) return;
