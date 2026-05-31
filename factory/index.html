@@ -222,6 +222,37 @@
     <div id="ui-preview-content"></div>
   </div>
 
+  <!-- REPORT FORM VIEW -->
+  <div id="view-report" class="hidden fade-in px-4 pt-2">
+    <div class="flex items-center gap-3 mb-4">
+      <button onclick="showView('home')" class="text-gray-500 text-sm py-2 pr-3">← 返回</button>
+      <h2 class="font-bold text-lg">🛠️ 問題回報</h2>
+    </div>
+    <div class="card p-4 mb-4">
+      <div class="text-sm font-bold mb-3" style="color:#7c6cff;">問題類型</div>
+      <div class="grid grid-cols-2 gap-2 mb-4" id="report-type-grid">
+        <button onclick="selectType(this,'UI/顯示問題')" class="py-3 rounded-xl text-sm border active:scale-95" style="border-color:rgba(124,108,255,0.3);color:#aaa;">🎨 UI/顯示問題</button>
+        <button onclick="selectType(this,'功能異常')" class="py-3 rounded-xl text-sm border active:scale-95" style="border-color:rgba(124,108,255,0.3);color:#aaa;">⚡ 功能異常</button>
+        <button onclick="selectType(this,'付款問題')" class="py-3 rounded-xl text-sm border active:scale-95" style="border-color:rgba(124,108,255,0.3);color:#aaa;">💳 付款問題</button>
+        <button onclick="selectType(this,'開發進度')" class="py-3 rounded-xl text-sm border active:scale-95" style="border-color:rgba(124,108,255,0.3);color:#aaa;">📡 開發進度</button>
+        <button onclick="selectType(this,'部署/連結問題')" class="py-3 rounded-xl text-sm border active:scale-95 col-span-2" style="border-color:rgba(124,108,255,0.3);color:#aaa;">🚀 部署/連結問題</button>
+      </div>
+      <div class="text-sm font-bold mb-2" style="color:#7c6cff;">問題描述</div>
+      <textarea id="report-desc" rows="4" placeholder="請詳細描述您遇到的問題..." class="w-full rounded-xl p-3 text-sm resize-none" style="background:rgba(0,0,0,0.3);border:1px solid rgba(124,108,255,0.3);color:white;"></textarea>
+      <div class="text-sm font-bold mb-2 mt-3" style="color:#7c6cff;">相關專案（選填）</div>
+      <select id="report-project" class="w-full rounded-xl p-3 text-sm" style="background:rgba(0,0,0,0.3);border:1px solid rgba(124,108,255,0.3);color:white;">
+        <option value="">-- 選擇相關專案 --</option>
+      </select>
+    </div>
+    <button onclick="submitReport()" class="btn-primary w-full py-4 rounded-xl text-base font-bold mb-3">📤 送出問題回報</button>
+    <div class="text-center text-xs text-gray-600">送出後 AI 客服將在 30 分鐘內回覆</div>
+    <div id="report-success" class="hidden card p-5 text-center mt-4" style="border-color:rgba(0,255,136,0.3);">
+      <div class="text-3xl mb-3">✅</div>
+      <div class="font-bold text-green-400 mb-1">回報已送出！</div>
+      <div class="text-xs text-gray-500">AI 客服將於 30 分鐘內回覆</div>
+    </div>
+  </div>
+
   <!-- DOC DETAIL VIEW -->
   <div id="view-doc-detail" class="hidden fade-in px-4 pt-2">
     <div class="flex items-center gap-3 mb-4">
@@ -653,6 +684,58 @@ function renderProducts() {
       </div>
     `;
   }).join('');
+}
+
+// ── REPORT FORM ──────────────────────────────────────────────
+let selectedReportType = '';
+function selectType(btn, type) {
+  document.querySelectorAll('#report-type-grid button').forEach(b => {
+    b.style.background = 'transparent';
+    b.style.color = '#aaa';
+    b.style.borderColor = 'rgba(124,108,255,0.3)';
+  });
+  btn.style.background = 'rgba(124,108,255,0.2)';
+  btn.style.color = '#7c6cff';
+  btn.style.borderColor = '#7c6cff';
+  selectedReportType = type;
+}
+
+function openReportForm() {
+  // Populate project selector
+  const sel = document.getElementById('report-project');
+  sel.innerHTML = '<option value="">-- 選擇相關專案 --</option>' +
+    projects.map(p => `<option value="${p.project_id}">${p.product_name||p.project_id}</option>`).join('');
+  document.getElementById('report-success').classList.add('hidden');
+  document.getElementById('report-desc').value = '';
+  selectedReportType = '';
+  document.querySelectorAll('#report-type-grid button').forEach(b => {
+    b.style.background = 'transparent'; b.style.color = '#aaa';
+    b.style.borderColor = 'rgba(124,108,255,0.3)';
+  });
+  showView('report');
+}
+
+async function submitReport() {
+  const desc = document.getElementById('report-desc').value.trim();
+  const proj = document.getElementById('report-project').value;
+  if (!selectedReportType) { alert('請選擇問題類型'); return; }
+  if (!desc) { alert('請填寫問題描述'); return; }
+
+  const msg = `🛠️ 問題回報\n類型：${selectedReportType}\n專案：${proj||'未指定'}\n描述：${desc}\n用戶：${currentUser?.displayName||'訪客'}`;
+
+  // Send to LINE via n8n (push to user)
+  try {
+    await fetch('https://ppplay.zeabur.app/webhook/ai-dev-manager', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({events:[{type:'message',replyToken:'report_form',
+        source:{userId:currentUser?.userId||'U9f200ef6c095c25edd6aa44cd927fa1b',type:'user'},
+        message:{type:'text',text:msg},timestamp:Date.now()}]})
+    });
+  } catch {}
+
+  document.getElementById('report-success').classList.remove('hidden');
+  setTimeout(()=>showView('home'), 3000);
 }
 
 function requestRedesign(projectId) {
