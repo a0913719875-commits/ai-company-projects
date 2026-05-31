@@ -559,6 +559,18 @@ function showDoc(type) {
 
 // ── PRODUCTS ──────────────────────────────────────────────────
 const STATUS_MAP = {planning:{pct:15,label:'需求規劃中'},ui_design:{pct:35,label:'UI設計中'},development:{pct:65,label:'開發中'},qa:{pct:85,label:'測試中'},completed:{pct:100,label:'已完成'}};
+const UI_STYLES = {
+  '極簡風格':{icon:'🎯',color:'#e2e8f0',bg:'#1e293b',desc:'Apple / Linear 美感，簡潔清爽'},
+  '企業風格':{icon:'🏢',color:'#93c5fd',bg:'#1e3a5f',desc:'專業可信賴，清晰易讀'},
+  '科技風格':{icon:'🌙',color:'#7c6cff',bg:'#07070f',desc:'深色主題霓虹道，現代感'},
+  '活潑風格':{icon:'🎨',color:'#f59e0b',bg:'#1c1102',desc:'色彩豐富活潑有個性'},
+  '高端風格':{icon:'💎',color:'#d4af37',bg:'#0a0a0a',desc:'精緻細膩奢華有質感'},
+  'AI 自動選擇最適合的風格':{icon:'🧠',color:'#00d4ff',bg:'#0f1020',desc:'AI 分析需求自動選擇'},
+};
+function getStyle(name) {
+  for (const [k,v] of Object.entries(UI_STYLES)) if(name && name.includes(k.substring(0,2))) return v;
+  return UI_STYLES['科技風格'];
+}
 
 function renderProducts() {
   const el = document.getElementById('product-cards');
@@ -571,17 +583,33 @@ function renderProducts() {
     const redesignCount = p.ui_redesign_count||0;
     const redesignMax = p.ui_redesign_max||3;
     const redesignLeft = redesignMax - redesignCount;
+    const uiStyle = p.ui_style || '科技風格';
+    const styleInfo = getStyle(uiStyle);
+    const features = p.features || [];
     return `
       <div class="card p-4 mb-3">
         <div class="flex items-start justify-between mb-3">
           <div class="flex-1 min-w-0">
-            <div class="font-bold truncate">${name}</div>
+            <div class="font-bold truncate">${p.product_name||name}</div>
             <div class="text-xs mt-0.5" style="color:${p.status==='completed'?'#00ff88':'#7c6cff'};">● ${sp.label}</div>
           </div>
           <div class="text-3xl font-black ml-3" style="color:#7c6cff;">${sp.pct}%</div>
         </div>
         <div class="h-2 rounded-full mb-3" style="background:rgba(124,108,255,0.1);">
           <div class="h-2 rounded-full bar-fill" style="--w:${sp.pct}%;background:linear-gradient(90deg,#7c6cff,#00d4ff);"></div>
+        </div>
+
+        <!-- UI Style Card -->
+        <div class="rounded-xl p-3 mb-3" style="background:${styleInfo.bg};border:1px solid ${styleInfo.color}33;">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">${styleInfo.icon}</span>
+              <span class="text-sm font-bold" style="color:${styleInfo.color};">UI 風格：${uiStyle}</span>
+            </div>
+            <div class="w-4 h-4 rounded-full" style="background:${styleInfo.color};box-shadow:0 0 6px ${styleInfo.color};"></div>
+          </div>
+          <div class="text-xs" style="color:${styleInfo.color}88;">${styleInfo.desc}</div>
+          ${features.length>0?`<div class="flex flex-wrap gap-1 mt-2">${features.map(f=>`<span class="text-xs px-2 py-0.5 rounded-full" style="background:${styleInfo.color}11;color:${styleInfo.color};border:1px solid ${styleInfo.color}33;">${f}</span>`).join('')}</div>`:''}
         </div>
         <!-- UI Redesign Counter -->
         <div class="flex items-center justify-between mb-2 p-2 rounded-lg" style="background:rgba(0,0,0,0.3);">
