@@ -340,7 +340,7 @@ function getDemoProjects() {
     project_id:'c-demo-002',
     requirement:'洗腎病患接送系統',
     status:'completed',
-    deploy_url:`${GH_PAGES}/`,
+    deploy_url:`${GH_PAGES}/c-72300127-itinerary-planner/`,
     ui_redesign_count:0,
     ui_redesign_max:3,
     created_at:'2026-05-28T14:00:00Z'
@@ -489,7 +489,14 @@ function renderHistory() {
       <div class="text-xs text-gray-500">狀態</div>
       <div class="text-xs font-bold text-green-400">🟢 正常運行</div>
     </div>
-    <a href="${GH_PAGES}/" target="_blank" class="block w-full py-2 text-center rounded-lg text-xs font-bold" style="background:rgba(124,108,255,0.2);color:#7c6cff;border:1px solid rgba(124,108,255,0.3);">🌐 查看部署成果</a>
+    ${(() => {
+      const ap = projects.find(p => p.status !== 'completed') || projects[0];
+      const dUrl = ap?.deploy_url;
+      const issN = ap?.issue_number;
+      const isReal = dUrl && dUrl.includes('github.io/ai-company-projects/c_');
+      if (isReal) return `<a href="${dUrl}" target="_blank" class="block w-full py-2 text-center rounded-lg text-xs font-bold" style="background:rgba(0,255,136,0.1);color:#00ff88;border:1px solid rgba(0,255,136,0.2);">🌐 查看真實作品</a>`;
+      return `<div class="w-full py-3 text-center rounded-lg text-xs" style="background:rgba(255,215,0,0.08);color:#ffd700;border:1px solid rgba(255,215,0,0.2);">⚡ Codex 開發中${issN?' (Issue #'+issN+')':''}，完成後系統自動通知</div>`;
+    })()}
   `;
 }
 
