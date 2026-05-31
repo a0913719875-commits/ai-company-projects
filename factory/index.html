@@ -834,16 +834,20 @@ function demoMode() {
 
 // ── INIT ─────────────────────────────────────────────────────
 function getPageParam() {
-  // Check both direct URL and LIFF state
+  const VALID = ['products','status','history','docs','report'];
+  // 1. Check hash (#history)
+  const hash = window.location.hash.replace('#','').split('?')[0];
+  if (hash && VALID.includes(hash)) return hash;
+  // 2. Check query param ?page=xxx
   const direct = new URLSearchParams(window.location.search).get('page');
-  if (direct) return direct;
-  // Check liff.state (after LIFF redirect)
+  if (direct && VALID.includes(direct)) return direct;
+  // 3. Check liff.state for encoded params
   try {
     const liffState = new URLSearchParams(window.location.search).get('liff.state');
     if (liffState) {
       const decoded = decodeURIComponent(liffState);
-      const m = decoded.match(/[?&]page=([^&]+)/);
-      if (m) return m[1];
+      const m = decoded.match(/[#?&]([a-z]+)/) || decoded.match(/page=([^&]+)/);
+      if (m && VALID.includes(m[1])) return m[1];
     }
   } catch {}
   return null;
