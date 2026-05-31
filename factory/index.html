@@ -833,6 +833,22 @@ function demoMode() {
 }
 
 // ── INIT ─────────────────────────────────────────────────────
+function getPageParam() {
+  // Check both direct URL and LIFF state
+  const direct = new URLSearchParams(window.location.search).get('page');
+  if (direct) return direct;
+  // Check liff.state (after LIFF redirect)
+  try {
+    const liffState = new URLSearchParams(window.location.search).get('liff.state');
+    if (liffState) {
+      const decoded = decodeURIComponent(liffState);
+      const m = decoded.match(/[?&]page=([^&]+)/);
+      if (m) return m[1];
+    }
+  } catch {}
+  return null;
+}
+
 async function init() {
   showView('home');
   try {
@@ -840,17 +856,12 @@ async function init() {
     liffReady = true;
     if(liff.isLoggedIn()) await afterLogin();
   } catch { liffReady = false; }
+  // Navigate AFTER LIFF init so URL params are stable
+  const pg = getPageParam();
+  const VALID = ['products','status','history','docs','report'];
+  if (pg && VALID.includes(pg)) showView(pg);
 }
-document.addEventListener('DOMContentLoaded', () => {
-  // Auto-navigate based on URL parameter ?page=xxx
-  const urlParams = new URLSearchParams(window.location.search);
-  const targetPage = urlParams.get('page');
-  if (targetPage && ['products','status','history','docs','report'].includes(targetPage)) {
-    // Wait for LIFF init then navigate
-    setTimeout(() => showView(targetPage), 100);
-  }
-  init();
-});
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
