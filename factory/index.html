@@ -841,7 +841,16 @@ async function init() {
     if(liff.isLoggedIn()) await afterLogin();
   } catch { liffReady = false; }
 }
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+  // Auto-navigate based on URL parameter ?page=xxx
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetPage = urlParams.get('page');
+  if (targetPage && ['products','status','history','docs','report'].includes(targetPage)) {
+    // Wait for LIFF init then navigate
+    setTimeout(() => showView(targetPage), 100);
+  }
+  init();
+});
 </script>
 </body>
 </html>
