@@ -3,153 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ai查詢表格</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>ai查詢表格</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
+            font-family: 'Inter', system-ui, sans-serif;
             background-color: #0a0a0a;
             color: #f5f5f5;
-            font-family: 'Inter', system-ui, sans-serif;
             padding: 2.5rem 3rem;
-            transition: all 0.3s ease-out;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 3rem;
-        }
-        .header h1 {
-            font-size: 2rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
+            animation: fadeIn 0.3s ease-out;
         }
         .card {
             background-color: #141414;
             border-radius: 16px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 1.5rem;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            margin-bottom: 3rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem 2rem;
+            transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
         }
         .card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
-        }
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-        }
-        .card-content {
-            font-size: 1rem;
-            line-height: 1.7;
-            font-weight: 400;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
         .button {
-            background-color: #d4af37;
-            border: none;
-            border-radius: 8px;
             padding: 0.75rem 1.5rem;
-            color: #0a0a0a;
-            font-weight: 600;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            height: 44px;
+            background-color: #d4af37;
+            border-radius: 8px;
+            transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
         }
         .button:hover {
             filter: brightness(1.1);
             transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(212, 175, 55, 0.4);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
         }
         .button:active {
             transform: scale(0.97);
         }
-        .input-field {
-            background-color: transparent;
-            border: 1px solid #2a2a2a;
-            border-radius: 8px;
-            padding: 0.75rem;
-            color: #f5f5f5;
-            width: 100%;
-            margin-bottom: 1rem;
-        }
-        .input-field:focus {
+        .input:focus {
+            outline: none;
             border-color: #d4af37;
             box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.5);
-            outline: none;
         }
-        .empty-state {
-            font-size: 0.875rem;
-            color: rgba(245, 245, 245, 0.7);
-            text-align: center;
-            margin-top: 2rem;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>司機接送明單</h1>
-        <button class="button" onclick="addSampleData()">新增明單</button>
-    </div>
-    <div id="content" class="content">
-        <!-- Initial Empty State -->
-        <div id="emptyState" class="empty-state" style="display: none;">目前沒有明單資料，請新增一筆明單。</div>
-        <div id="dataContainer"></div>
-    </div>
+    <header class="mb-8">
+        <h1 class="text-2xl font-extrabold mb-4">司機接送明單</h1>
+        <p class="text-lg">查詢與管理司機接送明細，並能回覆客戶訊息。</p>
+        <button class="button mt-4">新增明單</button>
+    </header>
+    
+    <main class="grid lg:grid-cols-2 gap-8">
+        <section class="card" id="summary">
+            <h2 class="text-xl font-bold mb-2">核對資料摘要</h2>
+            <p class="text-base mb-4">總行數：<span id="totalCount">0</span></p>
+        </section>
+
+        <section class="card" id="recordsSection">
+            <h2 class="text-xl font-bold mb-2">所有接送明單</h2>
+            <table class="w-full">
+                <thead>
+                    <tr>
+                        <th class="border-b border-gray-700 pb-2">司機名</th>
+                        <th class="border-b border-gray-700 pb-2">乘客名</th>
+                        <th class="border-b border-gray-700 pb-2">日期/時間</th>
+                        <th class="border-b border-gray-700 pb-2">編輯</th>
+                    </tr>
+                </thead>
+                <tbody id="recordsTable">
+                    <tr class="text-center" id="emptyState">
+                        <td colspan="4" class="py-4 text-gray-500">目前沒有資料</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
 
     <script>
-        function addSampleData() {
-            const data = localStorage.getItem('driversList');
-            let driversList = data ? JSON.parse(data) : [];
+        const recordsSection = document.getElementById('recordsSection');
+        const recordsTable = document.getElementById('recordsTable');
+        const emptyState = document.getElementById('emptyState');
+        const totalCount = document.getElementById('totalCount');
 
-            const driverEntry = {
-                id: driversList.length + 1,
-                driver: '張司機',
-                time: '09:00 AM',
-                message: '行程已確認'
-            };
+        let records = JSON.parse(localStorage.getItem('driverRecords')) || [];
 
-            driversList.push(driverEntry);
-            localStorage.setItem('driversList', JSON.stringify(driversList));
-            renderData();
-        }
-
-        function renderData() {
-            const data = localStorage.getItem('driversList');
-            const driverEntries = data ? JSON.parse(data) : [];
-            const container = document.getElementById('dataContainer');
-            const emptyState = document.getElementById('emptyState');
-
-            container.innerHTML = '';
-
-            if (driverEntries.length === 0) {
-                emptyState.style.display = 'block';
+        function renderRecords() {
+            recordsTable.innerHTML = '';
+            if (!records.length) {
+                recordsTable.appendChild(emptyState);
             } else {
-                emptyState.style.display = 'none';
-
-                driverEntries.forEach(entry => {
-                    const card = document.createElement('div');
-                    card.className = 'card';
-
-                    const title = document.createElement('div');
-                    title.className = 'card-title';
-                    title.textContent = `司機：${entry.driver}`;
-
-                    const content = document.createElement('div');
-                    content.className = 'card-content';
-                    content.innerHTML = `時間：${entry.time}<br>訊息：${entry.message}`;
-
-                    card.appendChild(title);
-                    card.appendChild(content);
-                    container.appendChild(card);
+                records.forEach((record, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="border-b border-gray-700 py-2">${record.driverName}</td>
+                        <td class="border-b border-gray-700 py-2">${record.passengerName}</td>
+                        <td class="border-b border-gray-700 py-2">${record.datetime}</td>
+                        <td class="border-b border-gray-700 py-2">
+                            <button class="button" onclick="editRecord(${index})">編輯</button>
+                        </td>
+                    `;
+                    recordsTable.appendChild(row);
                 });
             }
+            totalCount.textContent = records.length;
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            renderData();
-        });
+        function addRecord(driverName, passengerName, datetime) {
+            records.push({ driverName, passengerName, datetime });
+            localStorage.setItem('driverRecords', JSON.stringify(records));
+            renderRecords();
+        }
+
+        function editRecord(index) {
+            const record = records[index];
+            const newDriverName = prompt("Edit Driver Name", record.driverName) || record.driverName;
+            const newPassengerName = prompt("Edit Passenger Name", record.passengerName) || record.passengerName;
+            const newDatetime = prompt("Edit Date/Time", record.datetime) || record.datetime;
+            records[index] = { driverName: newDriverName, passengerName: newPassengerName, datetime: newDatetime };
+            localStorage.setItem('driverRecords', JSON.stringify(records));
+            renderRecords();
+        }
+
+        renderRecords();
     </script>
 </body>
 </html>
