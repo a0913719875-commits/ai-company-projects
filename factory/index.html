@@ -213,6 +213,34 @@
     </div>
   </div>
 
+  <!-- API KEYS VIEW -->
+  <div id="view-apikeys" class="hidden fade-in px-4 pt-2">
+    <div class="flex items-center gap-3 mb-4">
+      <button onclick="showView('products')" class="text-gray-500 text-sm py-2 pr-3">← 返回</button>
+      <h2 class="font-bold text-lg">🔐 安全填寫 API 金鑰</h2>
+    </div>
+    <div class="card p-4 mb-4" style="border-color:rgba(255,100,50,0.3);background:rgba(255,100,50,0.05);">
+      <div class="text-sm font-bold mb-1" style="color:#ff6432;">⚠️ 安全提醒</div>
+      <div class="text-xs text-gray-400">請勿在 LINE 聊天室貼上 API 金鑰。此表單使用 HTTPS 加密傳輸，填寫後系統將安全儲存。</div>
+    </div>
+    <div id="apikeys-project-info" class="card p-3 mb-4"></div>
+    <div id="apikeys-fields" class="mb-4"></div>
+    <div class="card p-4 mb-4">
+      <div class="text-sm font-bold mb-2" style="color:#7c6cff;">新增其他金鑰</div>
+      <div class="flex gap-2 mb-2">
+        <input id="custom-key-name" placeholder="金鑰名稱（如 STRIPE_SECRET）" class="flex-1 rounded-lg p-2 text-sm" style="background:rgba(0,0,0,0.3);border:1px solid rgba(124,108,255,0.3);color:white;">
+        <input id="custom-key-value" type="password" placeholder="金鑰值" class="flex-1 rounded-lg p-2 text-sm" style="background:rgba(0,0,0,0.3);border:1px solid rgba(124,108,255,0.3);color:white;">
+      </div>
+      <button onclick="addCustomKey()" class="w-full py-2 rounded-lg text-sm font-bold" style="background:rgba(124,108,255,0.2);color:#7c6cff;border:1px solid rgba(124,108,255,0.3);">+ 新增金鑰</button>
+    </div>
+    <button onclick="submitApiKeys()" class="btn-primary w-full py-4 rounded-xl text-base font-bold mb-3">🔐 安全提交金鑰</button>
+    <div id="apikeys-success" class="hidden card p-5 text-center mt-4" style="border-color:rgba(0,255,136,0.3);">
+      <div class="text-3xl mb-3">✅</div>
+      <div class="font-bold text-green-400 mb-1">金鑰已安全儲存！</div>
+      <div class="text-xs text-gray-500">Codex 開發時將自動使用這些金鑰</div>
+    </div>
+  </div>
+
   <!-- UI PREVIEW VIEW -->
   <div id="view-ui-preview" class="hidden fade-in px-4 pt-2">
     <div class="flex items-center gap-3 mb-4">
@@ -677,8 +705,9 @@ function renderProducts() {
         <div class="w-full py-2 text-xs rounded-lg text-center mb-2" style="background:rgba(255,68,102,0.1);color:#ff4466;border:1px solid rgba(255,68,102,0.3);">
           ⚠️ 免費更換次數已用完，額外更換 NT$300
         </div>`}
-        <div class="flex gap-2 mt-1">
-          <button onclick="showUIPreview(${JSON.stringify(p).replace(/"/g,'&quot;')})" class="flex-1 py-2 text-xs rounded-lg font-bold" style="background:rgba(124,108,255,0.1);color:#7c6cff;border:1px solid rgba(124,108,255,0.3);">🎨 查看 UI 設計</button>
+        <div class="flex gap-2 mt-1 flex-wrap">
+          <button onclick="showUIPreview(${JSON.stringify(p).replace(/"/g,'&quot;')})" class="flex-1 py-2 text-xs rounded-lg font-bold" style="background:rgba(124,108,255,0.1);color:#7c6cff;border:1px solid rgba(124,108,255,0.3);">🎨 UI 設計</button>
+          <button onclick="openApiKeys(${JSON.stringify(p).replace(/"/g,'&quot;')})" class="flex-1 py-2 text-xs rounded-lg font-bold" style="background:rgba(255,165,0,0.1);color:#ffa500;border:1px solid rgba(255,165,0,0.3);">🔑 API 金鑰</button>
           ${p.deploy_url?`<a href="${p.deploy_url}" target="_blank" class="flex-1 py-2 text-center text-xs rounded-lg font-bold" style="background:rgba(0,255,136,0.1);color:#00ff88;border:1px solid rgba(0,255,136,0.2);">🌐 查看作品</a>`:''}
         </div>
       </div>
@@ -736,6 +765,105 @@ async function submitReport() {
 
   document.getElementById('report-success').classList.remove('hidden');
   setTimeout(()=>showView('home'), 3000);
+}
+
+// ── API KEYS ──────────────────────────────────────────────────
+let currentApiProject = null;
+let customKeys = {};
+
+const COMMON_KEYS = {
+  'LINE_PAY_CHANNEL_ID': 'LINE Pay Channel ID',
+  'LINE_PAY_CHANNEL_SECRET': 'LINE Pay Channel Secret',
+  'STRIPE_SECRET_KEY': 'Stripe 密鑰',
+  'FIREBASE_API_KEY': 'Firebase API Key',
+  'OPENAI_API_KEY': 'OpenAI API Key',
+  'GOOGLE_MAPS_KEY': 'Google Maps API Key',
+};
+
+function openApiKeys(project) {
+  currentApiProject = project;
+  customKeys = {};
+  document.getElementById('apikeys-success').classList.add('hidden');
+
+  // Show project info
+  document.getElementById('apikeys-project-info').innerHTML = `
+    <div class="flex items-center gap-3">
+      <span class="text-xl">🚀</span>
+      <div>
+        <div class="font-bold text-sm">${project.product_name || project.project_id}</div>
+        <div class="text-xs text-gray-500">專案 ID: ${project.project_id}</div>
+      </div>
+    </div>
+  `;
+
+  // Auto-detect needed keys from features
+  const features = (project.features || []).join(' ').toLowerCase();
+  const req = project.requirement || '';
+  const needed = [];
+  if (features.includes('pay') || req.includes('付款') || req.includes('line pay')) needed.push('LINE_PAY_CHANNEL_ID', 'LINE_PAY_CHANNEL_SECRET');
+  if (features.includes('stripe') || req.includes('stripe')) needed.push('STRIPE_SECRET_KEY');
+  if (features.includes('firebase') || req.includes('firebase')) needed.push('FIREBASE_API_KEY');
+  if (features.includes('map') || req.includes('地圖') || req.includes('google map')) needed.push('GOOGLE_MAPS_KEY');
+
+  const fieldsHtml = (needed.length > 0 ? needed : []).map(k => `
+    <div class="card p-3 mb-2">
+      <div class="text-xs font-bold mb-1" style="color:#7c6cff;">${COMMON_KEYS[k] || k}</div>
+      <div class="text-xs text-gray-500 mb-2">${k}</div>
+      <input type="password" id="key_${k}" placeholder="請輸入..."
+        class="w-full rounded-lg p-2 text-sm"
+        style="background:rgba(0,0,0,0.3);border:1px solid rgba(124,108,255,0.3);color:white;">
+    </div>
+  `).join('');
+
+  document.getElementById('apikeys-fields').innerHTML = fieldsHtml || `
+    <div class="text-xs text-gray-500 mb-3">系統未自動偵測到特定金鑰需求，請手動新增。</div>
+  `;
+  showView('apikeys');
+}
+
+function addCustomKey() {
+  const name = document.getElementById('custom-key-name').value.trim();
+  const value = document.getElementById('custom-key-value').value.trim();
+  if (!name || !value) { alert('請填寫金鑰名稱和值'); return; }
+  customKeys[name] = value;
+  document.getElementById('custom-key-name').value = '';
+  document.getElementById('custom-key-value').value = '';
+  document.getElementById('apikeys-fields').innerHTML += `
+    <div class="card p-3 mb-2" style="border-color:rgba(0,255,136,0.3);">
+      <div class="text-xs font-bold" style="color:#00ff88;">✅ ${name}</div>
+      <div class="text-xs text-gray-500">已新增（已隱藏）</div>
+    </div>
+  `;
+}
+
+async function submitApiKeys() {
+  if (!currentApiProject) return;
+  const keys = { ...customKeys };
+
+  // Collect all fields
+  document.querySelectorAll('[id^="key_"]').forEach(el => {
+    if (el.value.trim()) {
+      const keyName = el.id.replace('key_', '');
+      keys[keyName] = el.value.trim();
+    }
+  });
+
+  if (Object.keys(keys).length === 0) { alert('請至少填寫一個金鑰'); return; }
+
+  try {
+    const resp = await fetch(`${PM}/projects/${currentApiProject.project_id}/keys`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({keys, project_id: currentApiProject.project_id})
+    });
+    const data = await resp.json();
+    if (data.success) {
+      document.getElementById('apikeys-success').classList.remove('hidden');
+      setTimeout(() => showView('products'), 3000);
+    }
+  } catch (e) {
+    alert('提交失敗，請重試');
+  }
 }
 
 function requestRedesign(projectId) {
