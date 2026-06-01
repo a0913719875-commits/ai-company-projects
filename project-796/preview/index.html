@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台股籌碼選股系統</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for Roboto Mono (futuristic feel) -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles for futuristic neon look */
+        body {
+            font-family: 'Roboto Mono', monospace; /* A more futuristic font */
+            background-color: #07070f; /* Dark background */
+            color: #e0e0e0; /* Light grey text for contrast */
+        }
+        .neon-purple-text {
+            color: #7c6cff; /* Neon purple accent */
+        }
+        .neon-purple-bg {
+            background-color: #7c6cff; /* Neon purple background */
+        }
+        .neon-purple-border {
+            border-color: #7c6cff; /* Neon purple border */
+        }
+        .input-field {
+            @apply bg-gray-800 border border-gray-700 text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#7c6cff] focus:border-transparent transition-all duration-200;
+        }
+        .btn {
+            @apply px-4 py-2 rounded-md font-bold transition-all duration-200;
+        }
+        .btn-primary {
+            @apply neon-purple-bg text-white hover:bg-[#6a5ad1] active:bg-[#5849b3];
+        }
+        .btn-secondary {
+            @apply bg-gray-700 text-white hover:bg-gray-600 active:bg-gray-500;
+        }
+        .btn-danger {
+            @apply bg-red-600 text-white hover:bg-red-500 active:bg-red-700;
+        }
+        .modal-overlay {
+            @apply fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50;
+        }
+        .modal-content {
+            @apply bg-[#1a1a2e] p-6 rounded-lg shadow-lg max-w-lg w-full border border-[#7c6cff];
+        }
+        /* For numbers, green for positive, red for negative */
+        .positive {
+            color: #4ade80; /* Green */
+        }
+        .negative {
+            color: #ef4444; /* Red */
+        }
+        /* Custom scrollbar for table */
+        .overflow-x-auto::-webkit-scrollbar {
+            height: 8px;
+        }
+        .overflow-x-auto::-webkit-scrollbar-track {
+            background: #1a1a2e;
+        }
+        .overflow-x-auto::-webkit-scrollbar-thumb {
+            background: #7c6cff;
+            border-radius: 4px;
+        }
+        .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+            background: #6a5ad1;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 sm:p-6 md:p-8">
+    <div class="container mx-auto max-w-7xl w-full bg-[#1a1a2e] rounded-xl shadow-2xl p-6 sm:p-8 md:p-10 border border-[#7c6cff]">
+        <!-- Header -->
+        <h1 class="text-3xl sm:text-4xl font-bold text-center neon-purple-text mb-8 tracking-wide">台股籌碼選股系統</h1>
+
+        <!-- Statistics Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 shadow-md">
+                <h2 class="text-xl font-semibold text-white mb-2">統計概覽</h2>
+                <p class="text-lg">三大法人合計總買賣超: <span id="totalInstitutionalBuySell" class="font-bold positive">0 張</span></p>
+                <p class="text-lg">平均籌碼強度評分: <span id="averageChipScore" class="font-bold neon-purple-text">0</span></p>
+            </div>
+            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 shadow-md">
+                <h2 class="text-xl font-semibold text-white mb-2">操作指引</h2>
+                <p class="text-gray-400">使用搜尋框快速查找股票。</p>
+                <p class="text-gray-400">點擊篩選按鈕以查看不同交易策略的股票。</p>
+                <p class="text-gray-400">點擊新增按鈕以追蹤更多股票。</p>
+            </div>
+        </div>
+
+        <!-- Controls Section: Search, Filter, Add, Export -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+            <input type="text" id="searchInput" placeholder="搜尋股票代碼或名稱..." class="input-field flex-grow sm:w-auto w-full">
+            <div class="flex flex-wrap gap-2 w-full sm:w-auto justify-center">
+                <button class="btn btn-secondary filter-btn" data-filter="all" id="filterAll">全部</button>
+                <button class="btn btn-secondary filter-btn" data-filter="當沖" id="filterDayTrade">當沖</button>
+                <button class="btn btn-secondary filter-btn" data-filter="波段" id="filterSwing">波段</button>
+                <button class="btn btn-secondary filter-btn" data-filter="長期" id="filterLongTerm">長期</button>
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto justify-center">
+                <button id="addStockBtn" class="btn btn-primary">新增股票</button>
+                <button id="exportCsvBtn" class="btn btn-secondary">CSV匯出</button>
+            </div>
+        </div>
+
+        <!-- Stock Table/List View -->
+        <div class="overflow-x-auto rounded-lg border border-gray-700 shadow-md">
+            <table class="min-w-full divide-y divide-gray-700">
+                <thead class="bg-gray-800">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">股票代碼</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">股票名稱</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">外資買賣超(張)</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">投信買賣超(張)</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">自營商買賣超(張)</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">三大法人合計(張)</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">籌碼強度評分</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">策略類型</th>
+                        <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="stockTableBody" class="bg-[#1a1a2e] divide-y divide-gray-800">
+                    <!-- Stock data will be populated here by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add/Edit Stock Modal -->
+    <div id="stockModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 id="modalTitle" class="text-2xl font-bold neon-purple-text mb-4">新增股票</h2>
+            <form id="stockForm" class="space-y-4">
+                <div>
+                    <label for="stockCode" class="block text-sm font-medium text-gray-300 mb-1">股票代碼</label>
+                    <input type="text" id="stockCode" class="input-field w-full" placeholder="例如: 2330" required>
+                </div>
+                <div>
+                    <label for="stockName" class="block text-sm font-medium text-gray-300 mb-1">股票名稱</label>
+                    <input type="text" id="stockName" class="input-field w-full" placeholder="例如: 台積電" required>
+                </div>
+                <div>
+                    <label for="foreignBuySell" class="block text-sm font-medium text-gray-300 mb-1">外資買賣超 (張)</label>
+                    <input type="number" id="foreignBuySell" class="input-field w-full" value="0" required>
+                </div>
+                <div>
+                    <label for="trustBuySell" class="block text-sm font-medium text-gray-300 mb-1">投信買賣超 (張)</label>
+                    <input type="number" id="trustBuySell" class="input-field w-full" value="0" required>
+                </div>
+                <div>
+                    <label for="dealerBuySell" class="block text-sm font-medium text-gray-300 mb-1">自營商買賣超 (張)</label>
+                    <input type="number" id="dealerBuySell" class="input-field w-full" value="0" required>
+                </div>
+                <div>
+                    <label for="strategyType" class="block text-sm font-medium text-gray-300 mb-1">策略類型</label>
+                    <select id="strategyType" class="input-field w-full">
+                        <option value="當沖">當沖</option>
+                        <option value="波段">波段</option>
+                        <option value="長期">長期</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" id="cancelModalBtn" class="btn btn-secondary">取消</button>
+                    <button type="submit" class="btn btn-primary">儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Initial demo data
+        const initialStocks = [
+            { id: '2330', code: '2330', name: '台積電', foreign: 15000, trust: 2000, dealer: 500, type: '長期' },
+            { id: '2317', code: '2317', name: '鴻海', foreign: -8000, trust: 1000, dealer: 200, type: '波段' },
+            { id: '2454', code: '2454', name: '聯發科', foreign: 3500, trust: 500, dealer: 150, type: '長期' },
+            { id: '3711', code: '3711', name: '日月光投控', foreign: 1200, trust: -300, dealer: 80, type: '波段' },
+            { id: '2412', code: '2412', name: '中華電', foreign: 100, trust: 50, dealer: 10, type: '長期' },
+            { id: '2881', code: '2881', name: '富邦金', foreign: 2500, trust: 150, dealer: -50, type: '波段' },
+            { id: '2603', code: '2603', name: '長榮', foreign: -5000, trust: -1000, dealer: -200, type: '當沖' },
+            { id: '2618', code: '2618', name: '長榮航', foreign: 800, trust: 200, dealer: 30, type: '當沖' },
+            { id: '2002', code: '2002', name: '中鋼', foreign: 600, trust: 100, dealer: 20, type: '長期' },
+            { id: '1301', code: '1301', name: '台塑', foreign: -200, trust: 50, dealer: 10, type: '長期' }
+        ];
+
+        let stocks = JSON.parse(localStorage.getItem('taiwanStocks')) || initialStocks;
+        let currentEditingStockId = null;
+
+        // Helper function to calculate total buy/sell and chip strength score
+        function calculateStockMetrics(stock) {
+            stock.total = stock.foreign + stock.trust + stock.dealer;
+            // Simple scoring logic: 0-100, weighted by total buy/sell. Max total for 100 score is arbitrary.
+            // A negative total means lower score, positive means higher.
+            let score = Math.min(100, Math.max(0, 50 + (stock.total / 400))); // Base 50, +/- based on total, capped 0-100
+            stock.score = Math.round(score);
+            return stock;
+        }
+
+        // Apply metrics to initial stocks (or loaded stocks from localStorage)
+        stocks = stocks.map(s => calculateStockMetrics({ ...s })); // Ensure we're working on copies or new objects to trigger reactivity if needed, though not strictly necessary here.
+
+        // DOM Elements
+        const stockTableBody = document.getElementById('stockTableBody');
+        const searchInput = document.getElementById('searchInput');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const addStockBtn = document.getElementById('addStockBtn');
+        const exportCsvBtn = document.getElementById('exportCsvBtn');
+        const stockModal = document.getElementById('stockModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const stockForm = document.getElementById('stockForm');
+        const cancelModalBtn = document.getElementById('cancelModalBtn');
+
+        const stockCodeInput = document.getElementById('stockCode');
+        const stockNameInput = document.getElementById('stockName');
+        const foreignBuySellInput = document.getElementById('foreignBuySell');
+        const trustBuySellInput = document.getElementById('trustBuySell');
+        const dealerBuySellInput = document.getElementById('dealerBuySell');
+        const strategyTypeSelect = document.getElementById('strategyType');
+
+        const totalInstitutionalBuySellSpan = document.getElementById('totalInstitutionalBuySell');
+        const averageChipScoreSpan = document.getElementById('averageChipScore');
+
+        // Render stocks to the table
+        function renderStocks(filter = 'all', searchTerm = '') {
+            stockTableBody.innerHTML = '';
+            let filteredStocks = stocks;
+
+            if (filter !== 'all') {
+                filteredStocks = filteredStocks.filter(stock => stock.type === filter);
+            }
+
+            if (searchTerm) {
+                const lowerCaseSearchTerm = searchTerm.toLowerCase();
+                filteredStocks = filteredStocks.filter(stock =>
+                    stock.code.toLowerCase().includes(lowerCaseSearchTerm) ||
+                    stock.name.toLowerCase().includes(lowerCaseSearchTerm)
+                );
+            }
+
+            let totalInstitutionalBuySell = 0;
+            let totalChipScore = 0;
+
+            if (filteredStocks.length === 0) {
+                stockTableBody.innerHTML = `<tr><td colspan="9" class="py-4 text-center text-gray-500">沒有符合條件的股票資料。</td></tr>`;
+            }
+
+            filteredStocks.forEach(stock => {
+                totalInstitutionalBuySell += stock.total;
+                totalChipScore += stock.score;
+
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-700 transition-colors duration-150';
+                row.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-white">${stock.code}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">${stock.name}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm ${stock.foreign >= 0 ? 'positive' : 'negative'}">${stock.foreign}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm ${stock.trust >= 0 ? 'positive' : 'negative'}">${stock.trust}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm ${stock.dealer >= 0 ? 'positive' : 'negative'}">${stock.dealer}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm ${stock.total >= 0 ? 'positive' : 'negative'} font-bold">${stock.total}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm neon-purple-text font-bold">${stock.score}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-400">${stock.type}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="btn btn-secondary text-xs mr-2 edit-btn" data-id="${stock.id}">編輯</button>
+                        <button class="btn btn-danger text-xs delete-btn" data-id="${stock.id}">刪除</button>
+                    </td>
+                `;
+                stockTableBody.appendChild(row);
+            });
+
+            // Update statistics
+            totalInstitutionalBuySellSpan.textContent = `${totalInstitutionalBuySell} 張`;
+            totalInstitutionalBuySellSpan.className = `font-bold ${totalInstitutionalBuySell >= 0 ? 'positive' : 'negative'}`;
+            averageChipScoreSpan.textContent = filteredStocks.length > 0 ? (totalChipScore / filteredStocks.length).toFixed(1) : '0';
+
+            // Add event listeners for edit/delete buttons
+            document.querySelectorAll('.edit-btn').forEach(button => {
+                button.addEventListener('click', (e) => openEditModal(e.target.dataset.id));
+            });
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', (e) => deleteStock(e.target.dataset.id));
+            });
+        }
+
+        // Save stocks to localStorage
+        function saveStocks() {
+            localStorage.setItem('taiwanStocks', JSON.stringify(stocks));
+        }
+
+        // Open Add Stock Modal
+        addStockBtn.addEventListener('click', () => {
+            modalTitle.textContent = '新增股票';
+            stockForm.reset();
+            currentEditingStockId = null;
+            stockModal.classList.remove('hidden');
+        });
+
+        // Close Modal
+        cancelModalBtn.addEventListener('click', () => {
+            stockModal.classList.add('hidden');
+        });
+
+        // Submit Form (Add/Edit)
+        stockForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const stockCode = stockCodeInput.value.trim();
+            const stockName = stockNameInput.value.trim();
+            const foreign = parseInt(foreignBuySellInput.value, 10);
+            const trust = parseInt(trustBuySellInput.value, 10);
+            const dealer = parseInt(dealerBuySellInput.value, 10);
+            const type = strategyTypeSelect.value;
+
+            if (!stockCode || !stockName || isNaN(foreign) || isNaN(trust) || isNaN(dealer)) {
+                alert('請填寫所有欄位並確保數字有效。');
+                return;
+            }
+
+            let stockData = {
+                code: stockCode,
+                name: stockName,
+                foreign: foreign,
+                trust: trust,
+                dealer: dealer,
+                type: type
+            };
+
+            stockData = calculateStockMetrics(stockData); // Recalculate metrics
+
+            if (currentEditingStockId) {
+                // Edit existing stock
+                const index = stocks.findIndex(s => s.id === currentEditingStockId);
+                if (index !== -1) {
+                    stocks[index] = { ...stocks[index], ...stockData };
+                }
+            } else {
+                // Add new stock
+                // Generate a unique ID for new stock
+                stockData.id = Date.now().toString();
+                stocks.push(stockData);
+            }
+
+            saveStocks();
+            // Re-render with current filter and search term
+            const currentActiveFilter = document.querySelector('.filter-btn.neon-purple-bg')?.dataset.filter || 'all';
+            renderStocks(currentActiveFilter, searchInput.value);
+            stockModal.classList.add('hidden');
+        });
+
+        // Open Edit Stock Modal
+        function openEditModal(id) {
+            const stock = stocks.find(s => s.id === id);
+            if (stock) {
+                modalTitle.textContent = `編輯股票: ${stock.name}`;
+                currentEditingStockId = id;
+                stockCodeInput.value = stock.code;
+                stockNameInput.value = stock.name;
+                foreignBuySellInput.value = stock.foreign;
+                trustBuySellInput.value = stock.trust;
+                dealerBuySellInput.value = stock.dealer;
+                strategyTypeSelect.value = stock.type;
+                stockModal.classList.remove('hidden');
+            }
+        }
+
+        // Delete Stock
+        function deleteStock(id) {
+            if (confirm('確定要刪除這筆股票資料嗎？')) {
+                stocks = stocks.filter(stock => stock.id !== id);
+                saveStocks();
+                // Re-render with current filter and search term
+                const currentActiveFilter = document.querySelector('.filter-btn.neon-purple-bg')?.dataset.filter || 'all';
+                renderStocks(currentActiveFilter, searchInput.value);
+            }
+        }
+
+        // Search functionality
+        searchInput.addEventListener('input', () => {
+            const currentActiveFilter = document.querySelector('.filter-btn.neon-purple-bg')?.dataset.filter || 'all';
+            renderStocks(currentActiveFilter, searchInput.value);
+        });
+
+        // Filter functionality
+        filterButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                // Remove active class from all filter buttons
+                filterButtons.forEach(btn => {
+                    btn.classList.remove('neon-purple-bg', 'text-white');
+                    btn.classList.add('bg-gray-700', 'text-white');
+                });
+
+                // Add active class to clicked button
+                e.target.classList.remove('bg-gray-700', 'text-white');
+                e.target.classList.add('neon-purple-bg', 'text-white');
+
+                renderStocks(e.target.dataset.filter, searchInput.value);
+            });
+        });
+
+        // CSV Export
+        exportCsvBtn.addEventListener('click', () => {
+            const currentFilter = document.querySelector('.filter-btn.neon-purple-bg')?.dataset.filter || 'all';
+            const currentSearchTerm = searchInput.value;
+            let filteredStocks = stocks;
+
+            if (currentFilter !== 'all') {
+                filteredStocks = filteredStocks.filter(stock => stock.type === currentFilter);
+            }
+            if (currentSearchTerm) {
+                const lowerCaseSearchTerm = currentSearchTerm.toLowerCase();
+                filteredStocks = filteredStocks.filter(stock =>
+                    stock.code.toLowerCase().includes(lowerCaseSearchTerm) ||
+                    stock.name.toLowerCase().includes(lowerCaseSearchTerm)
+                );
+            }
+
+            const headers = ["股票代碼", "股票名稱", "外資買賣超(張)", "投信買賣超(張)", "自營商買賣超(張)", "三大法人合計(張)", "籌碼強度評分", "策略類型"];
+            const csvRows = [
+                headers.join(',')
+            ];
+
+            for (const stock of filteredStocks) {
+                csvRows.push([
+                    stock.code,
+                    stock.name,
+                    stock.foreign,
+                    stock.trust,
+                    stock.dealer,
+                    stock.total,
+                    stock.score,
+                    stock.type
+                ].map(item => `"${String(item).replace(/"/g, '""')}"`).join(',')); // Enclose fields in quotes and escape internal quotes
+            }
+
+            const csvString = '\ufeff' + csvRows.join('\n'); // Add BOM for proper UTF-8 handling in Excel
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', '台股籌碼選股資料.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // Initial render
+        renderStocks();
+        // Set '全部' filter button as active initially
+        document.getElementById('filterAll').classList.remove('bg-gray-700', 'text-white');
+        document.getElementById('filterAll').classList.add('neon-purple-bg', 'text-white');
+
+    </script>
+</body>
+</html>
