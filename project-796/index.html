@@ -7,98 +7,136 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        :root {
+            --background-color: #07070f;
+            --card-color: #0f1020;
+            --accent-color: #7c6cff;
+            --text-color: #ffffff;
+            --border-color: #1a1d35;
+        }
         body {
-            background-color: #07070f;
-            color: #ffffff;
             font-family: 'Inter', system-ui, sans-serif;
-            overflow-x: hidden;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2.5rem 3rem;
         }
         .card {
-            background-color: #0f1020;
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            background-color: var(--card-color);
             border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem 2rem;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.1);
         }
-        .btn {
-            background-color: #7c6cff;
+        button {
+            background-color: var(--accent-color);
+            color: var(--text-color);
             padding: 0.75rem 1.5rem;
             height: 44px;
+            border: none;
             border-radius: 8px;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
         }
-        .btn:hover {
+        button:hover {
             filter: brightness(1.1);
             transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 7px rgba(0, 0, 0, 0.15);
         }
-        .btn:active {
+        button:active {
             transform: scale(0.97);
-        }
-        header {
-            padding: 2.5rem 3rem;
-        }
-        main {
-            padding: 2.5rem 3rem;
-        }
-        .input:focus {
-            border-color: #7c6cff;
-            box-shadow: 0 0 0 3px rgba(124, 108, 255, 0.3);
-        }
-        .fade-in {
-            animation: fade-in 0.3s ease-out;
-        }
-        @keyframes fade-in {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
-<body class="fade-in">
-<header class="flex justify-between items-center">
-    <h1 class="text-4xl font-extrabold">台股籌碼選股</h1>
-    <div class="flex space-x-4">
-        <button class="btn">查看統計</button>
-        <button class="btn">新增選股</button>
-    </div>
-</header>
-<main>
-    <section class="grid lg:grid-cols-3 gap-8">
-        <div class="card p-6">
-            <h2 class="text-xl font-bold">當沖操作</h2>
-            <p class="mt-2 text-gray-400">透過籌碼分析進行每日當沖交易。</p>
-            <button class="btn mt-4">開始當沖</button>
+<body>
+    <header class="flex justify-between items-center mb-12">
+        <h1 class="text-4xl font-bold">台股籌碼選股</h1>
+        <div class="space-x-4">
+            <button id="newStock">新增股票</button>
         </div>
-        <div class="card p-6">
-            <h2 class="text-xl font-bold">波段飆股</h2>
-            <p class="mt-2 text-gray-400">分析潛在波段飆股以提升收益。</p>
-            <button class="btn mt-4">查找飆股</button>
+    </header>
+    <main>
+        <div id="stockList" class="space-y-8">
+            <!-- Stocks will be added here dynamically -->
         </div>
-        <div class="card p-6">
-            <h2 class="text-xl font-bold">選股記錄</h2>
-            <p class="mt-2 text-gray-400">查看過去選股記錄及其表現。</p>
-            <button class="btn mt-4">查看記錄</button>
+        <div id="emptyState" class="hidden text-center text-xl mt-20">
+            目前沒有資料，請新增股票。
         </div>
-    </section>
-    <section class="mt-12">
-        <!-- Placeholder for charts and statistical analysis -->
-        <div id="empty-state" class="flex justify-center items-center h-64 text-gray-500">
-            目前沒有數據顯示
-        </div>
-    </section>
-</main>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        if (!localStorage.getItem('stocks')) {
-            document.getElementById('empty-state').textContent = '目前沒有數據顯示';
-        }
-    });
-</script>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const stockData = [
+                { code: '2330', name: '台積電', type: '波段飆股', date: new Date().toLocaleDateString() },
+                { code: '2317', name: '鴻海', type: '當沖', date: new Date().toLocaleDateString() },
+                { code: '2454', name: '聯發科', type: '當沖', date: new Date().toLocaleDateString() }
+            ];
+            
+            const stockListEl = document.getElementById('stockList');
+            const emptyStateEl = document.getElementById('emptyState');
+            
+            function renderStocks() {
+                stockListEl.innerHTML = '';
+                const stocks = JSON.parse(localStorage.getItem('stocks')) || stockData;
+                if (stocks.length === 0) {
+                    emptyStateEl.classList.remove('hidden');
+                } else {
+                    emptyStateEl.classList.add('hidden');
+                    stocks.forEach(stock => {
+                        const stockEl = document.createElement('div');
+                        stockEl.className = 'card';
+                        stockEl.innerHTML = `
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <div class="text-2xl font-bold">${stock.name}</div>
+                                    <div class="text-sm text-gray-400">${stock.code} - ${stock.type}</div>
+                                    <div class="text-sm text-gray-500">${stock.date}</div>
+                                </div>
+                                <button class="deleteStock">刪除</button>
+                            </div>
+                        `;
+                        stockListEl.appendChild(stockEl);
+                    });
+                }
+                localStorage.setItem('stocks', JSON.stringify(stocks));
+            }
+            
+            document.getElementById('newStock').addEventListener('click', () => {
+                const code = prompt('輸入股票代碼');
+                const name = prompt('輸入股票名稱');
+                const type = prompt('輸入類型 (當沖/波段飆股)');
+                if (code && name && type) {
+                    const newStock = { code, name, type, date: new Date().toLocaleDateString() };
+                    const stocks = JSON.parse(localStorage.getItem('stocks')) || [];
+                    stocks.push(newStock);
+                    localStorage.setItem('stocks', JSON.stringify(stocks));
+                    renderStocks();
+                    alert('股票已新增');
+                } else {
+                    alert('所有欄位均需填寫');
+                }
+            });
+            
+            stockListEl.addEventListener('click', (event) => {
+                if (event.target.classList.contains('deleteStock')) {
+                    const confirmDel = confirm('確定要刪除此股票嗎？');
+                    if (confirmDel) {
+                        const stocks = JSON.parse(localStorage.getItem('stocks')) || [];
+                        const index = [...stockListEl.children].indexOf(event.target.parentElement.parentElement);
+                        stocks.splice(index, 1);
+                        localStorage.setItem('stocks', JSON.stringify(stocks));
+                        renderStocks();
+                        alert('股票已刪除');
+                    }
+                }
+            });
+            
+            renderStocks();
+        });
+    </script>
 </body>
 </html>
-```
-
-```python
