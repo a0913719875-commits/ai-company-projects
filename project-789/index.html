@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>記帳本</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Tailwind CDN Integration */
+        @import 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css';
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: #f0f4f8;
+            padding: 2.5rem 3rem;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #1e293b;
+        }
+
+        .stats, .add-button {
+            display: flex;
+            align-items: center;
+        }
+
+        .add-button button {
+            background-color: #2563eb;
+            color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .add-button button:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .add-button button:active {
+            transform: scale(0.97);
+        }
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            padding: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .card input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.5);
+        }
+
+        .title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.75rem;
+        }
+
+        .description {
+            font-size: 0.875rem;
+            color: rgba(30, 41, 59, 0.7);
+            margin-bottom: 1.5rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #1e293b;
+            font-size: 1rem;
+            line-height: 1.7;
+            font-weight: 400;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <h1>記帳本</h1>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <span class="stat-value text-xl font-bold text-blue-600">0</span>
+                <span class="stat-label ml-2 text-sm text-gray-500">支出</span>
+            </div>
+            <div class="add-button ml-6">
+                <button class="px-5 py-3 text-sm">
+                    添加記錄
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="card">
+                <div class="title">帳目清單</div>
+                <div class="description">查看所有記錄的支出和收入明細。</div>
+                <div id="record-list" class="mt-4">
+                    <div class="empty-state">沒有記錄，目前顯示空白狀態。</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="title">新增記錄</div>
+                <div class="description">輸入新的支出或收入明細。</div>
+                <form id="record-form" class="space-y-4">
+                    <div>
+                        <label for="amount" class="block text-sm font-medium text-gray-700">金額</label>
+                        <input type="number" id="amount" name="amount" class="mt-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm w-full" placeholder="輸入金額">
+                    </div>
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">說明</label>
+                        <input type="text" id="description" name="description" class="mt-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm w-full" placeholder="輸入說明">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded shadow">添加</button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const form = document.getElementById('record-form');
+        const recordList = document.getElementById('record-list');
+
+        const renderRecords = () => {
+            const records = JSON.parse(localStorage.getItem('records') || '[]');
+            recordList.innerHTML = records.length ? 
+                records.map(record => `<div class="p-4 mb-2 bg-gray-100 rounded-md">${record.description}: $${record.amount}</div>`).join('') 
+                : '<div class="empty-state">沒有記錄，目前顯示空白狀態。</div>';
+        };
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const amount = form.amount.value;
+            const description = form.description.value;
+
+            if (amount && description) {
+                const records = JSON.parse(localStorage.getItem('records') || '[]');
+                records.push({ amount, description });
+                localStorage.setItem('records', JSON.stringify(records));
+                form.reset();
+                renderRecords();
+            }
+        });
+
+        renderRecords(); // Initial render
+    </script>
+</body>
+</html>
