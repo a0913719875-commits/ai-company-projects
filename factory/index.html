@@ -213,6 +213,74 @@
     </div>
   </div>
 
+  <!-- GEMINI CANVAS VIEW -->
+  <div id="view-canvas" class="hidden" style="position:fixed;inset:0;background:#07070f;z-index:200;display:flex;flex-direction:column;">
+    <!-- Canvas Header -->
+    <div style="padding:12px 16px;background:#0f1020;border-bottom:1px solid #1a1d35;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div>
+        <div style="font-weight:800;font-size:16px;">🎨 AI Design Canvas</div>
+        <div style="font-size:11px;color:#7c6cff;" id="canvas-status">描述您想要的產品，AI 即時生成</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="closeCanvas()" style="background:transparent;border:1px solid #333;color:#aaa;padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;">✕ 離開</button>
+        <button id="confirm-design-btn" onclick="confirmDesign()" class="hidden" style="background:linear-gradient(135deg,#00b900,#00d900);border:none;color:white;padding:8px 18px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;">✅ 確認設計，開始開發</button>
+      </div>
+    </div>
+
+    <!-- Canvas Body: Chat + Preview -->
+    <div style="flex:1;display:flex;overflow:hidden;min-height:0;">
+
+      <!-- Left: Chat Panel -->
+      <div style="width:340px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid #1a1d35;background:#0a0b18;">
+        <div id="canvas-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+          <div style="background:#1a1d35;border-radius:12px;padding:12px;font-size:13px;color:#aaa;">
+            👋 你好！請描述你想要開發的產品，例如：<br><br>
+            「我想做一個台股選股系統，可以追蹤外資買賣超」<br><br>
+            AI 會根據你的描述即時生成 UI 設計，你可以隨時要求修改。
+          </div>
+        </div>
+
+        <!-- Chat Input -->
+        <div style="padding:12px;border-top:1px solid #1a1d35;">
+          <div style="display:flex;gap-8px;align-items:flex-end;gap:8px;">
+            <textarea id="canvas-input" rows="3" placeholder="描述需求或修改要求..." style="flex:1;background:#1a1d35;border:1px solid #2a2d45;border-radius:10px;padding:10px;color:white;font-size:13px;resize:none;outline:none;font-family:inherit;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCanvasMsg();}"></textarea>
+            <button onclick="sendCanvasMsg()" style="background:linear-gradient(135deg,#7c6cff,#00d4ff);border:none;color:white;padding:10px 16px;border-radius:10px;font-weight:700;cursor:pointer;height:60px;flex-shrink:0;">發送</button>
+          </div>
+          <div style="font-size:11px;color:#444;margin-top:6px;">Enter 發送 · Shift+Enter 換行</div>
+        </div>
+      </div>
+
+      <!-- Right: Preview Panel -->
+      <div style="flex:1;position:relative;background:#111;display:flex;flex-direction:column;">
+        <!-- Preview Loading -->
+        <div id="canvas-loading" class="hidden" style="position:absolute;inset:0;background:#07070f;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;">
+          <div style="font-size:48px;margin-bottom:16px;">⚡</div>
+          <div style="font-size:18px;font-weight:700;color:#7c6cff;margin-bottom:8px;">Gemini 正在生成 UI...</div>
+          <div style="font-size:13px;color:#888;" id="canvas-loading-msg">分析需求中...</div>
+          <div style="margin-top:20px;width:200px;height:3px;background:#1a1d35;border-radius:2px;overflow:hidden;">
+            <div id="canvas-progress" style="height:100%;background:linear-gradient(90deg,#7c6cff,#00d4ff);width:0%;transition:width 0.5s;"></div>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="canvas-empty" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#333;">
+          <div style="font-size:64px;margin-bottom:16px;">🎨</div>
+          <div style="font-size:20px;font-weight:700;color:#555;">在左邊描述你的產品</div>
+          <div style="font-size:13px;color:#444;margin-top:8px;">AI 會在這裡即時呈現設計</div>
+        </div>
+
+        <!-- Prototype iframe -->
+        <iframe id="canvas-frame" style="flex:1;border:none;display:none;" sandbox="allow-scripts allow-same-origin"></iframe>
+
+        <!-- Preview Footer -->
+        <div id="canvas-preview-info" class="hidden" style="padding:8px 16px;background:#0f1020;border-top:1px solid #1a1d35;display:flex;justify-between;align-items:center;">
+          <div style="font-size:12px;color:#888;" id="canvas-version">版本 1</div>
+          <div style="font-size:12px;color:#7c6cff;">如需修改，在左邊繼續描述</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- API KEYS VIEW -->
   <div id="view-apikeys" class="hidden fade-in px-4 pt-2">
     <div class="flex items-center gap-3 mb-4">
@@ -925,6 +993,170 @@ function showUIPreview(p) {
   showView('ui-preview');
 }
 
+// ── GEMINI CANVAS ─────────────────────────────────────────────
+let canvasHistory = [];
+let currentPrototypeHtml = null;
+let canvasProjectId = null;
+let canvasVersion = 0;
+
+function openCanvas(projectId) {
+  canvasProjectId = projectId || `canvas_${Date.now()}`;
+  canvasHistory = [];
+  currentPrototypeHtml = null;
+  canvasVersion = 0;
+
+  document.getElementById('canvas-messages').innerHTML = `
+    <div style="background:#1a1d35;border-radius:12px;padding:12px;font-size:13px;color:#aaa;">
+      👋 你好！請描述你想要開發的產品，例如：<br><br>
+      「我想做一個台股選股系統，可以追蹤外資買賣超」<br><br>
+      AI 會根據你的描述即時生成 UI 設計，你可以隨時要求修改。確認滿意後按「確認設計」，Codex 即開始部署。
+    </div>
+  `;
+  document.getElementById('canvas-frame').style.display = 'none';
+  document.getElementById('canvas-empty').style.display = '';
+  document.getElementById('canvas-loading').classList.add('hidden');
+  document.getElementById('confirm-design-btn').classList.add('hidden');
+  document.getElementById('canvas-preview-info').classList.add('hidden');
+  document.getElementById('canvas-status').textContent = '描述您想要的產品，AI 即時生成';
+  document.getElementById('canvas-progress').style.width = '0%';
+
+  const el = document.getElementById('view-canvas');
+  el.style.display = 'flex';
+  el.classList.remove('hidden');
+  setTimeout(() => document.getElementById('canvas-input').focus(), 200);
+}
+
+function closeCanvas() {
+  const el = document.getElementById('view-canvas');
+  el.style.display = 'none';
+  el.classList.add('hidden');
+}
+
+function addCanvasMessage(role, text) {
+  const msgs = document.getElementById('canvas-messages');
+  const div = document.createElement('div');
+  if (role === 'user') {
+    div.style.cssText = 'background:linear-gradient(135deg,rgba(124,108,255,0.2),rgba(0,212,255,0.1));border-radius:12px;padding:12px;font-size:13px;border:1px solid rgba(124,108,255,0.3);';
+    div.innerHTML = `<div style="font-size:11px;color:#7c6cff;margin-bottom:4px;">你</div>${text}`;
+  } else {
+    div.style.cssText = 'background:#1a1d35;border-radius:12px;padding:12px;font-size:13px;color:#aaa;';
+    div.innerHTML = `<div style="font-size:11px;color:#00d4ff;margin-bottom:4px;">🤖 AI</div>${text}`;
+  }
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function simulateProgress(durationMs) {
+  const bar = document.getElementById('canvas-progress');
+  const msgs = ['分析需求中...', '設計 UI 架構...', 'Gemini 生成中...', '整理元件配置...'];
+  let pct = 0; let i = 0;
+  const step = 100 / (durationMs / 500);
+  const iv = setInterval(() => {
+    pct = Math.min(pct + step + Math.random() * step * 0.5, 92);
+    bar.style.width = pct + '%';
+    if (i < msgs.length) {
+      document.getElementById('canvas-loading-msg').textContent = msgs[i++];
+    }
+  }, 500);
+  return () => { clearInterval(iv); bar.style.width = '100%'; };
+}
+
+async function sendCanvasMsg() {
+  const input = document.getElementById('canvas-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  addCanvasMessage('user', msg);
+  canvasHistory.push({ role: 'user', text: msg });
+
+  document.getElementById('canvas-loading').classList.remove('hidden');
+  document.getElementById('canvas-empty').style.display = 'none';
+  document.getElementById('canvas-status').textContent = 'Gemini 生成中...';
+  document.getElementById('canvas-frame').style.display = 'none';
+
+  const stopProgress = simulateProgress(30000);
+
+  try {
+    const res = await fetch(`${PM}/prototype/canvas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: msg,
+        history: canvasHistory.slice(-10),
+        current_html: currentPrototypeHtml,
+        project_id: canvasProjectId,
+        line_user_id: currentUser?.userId || 'demo'
+      }),
+      signal: AbortSignal.timeout(90000)
+    });
+
+    stopProgress();
+
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+
+    if (data.html) {
+      currentPrototypeHtml = data.html;
+      canvasVersion++;
+      const frame = document.getElementById('canvas-frame');
+      frame.srcdoc = data.html;
+      frame.style.display = 'block';
+      document.getElementById('canvas-loading').classList.add('hidden');
+      document.getElementById('canvas-preview-info').classList.remove('hidden');
+      document.getElementById('canvas-version').textContent = `版本 ${canvasVersion}`;
+      document.getElementById('canvas-status').textContent = '設計完成，可繼續調整或確認';
+      document.getElementById('confirm-design-btn').classList.remove('hidden');
+      addCanvasMessage('ai', data.message || `✅ UI 版本 ${canvasVersion} 已生成，右側可預覽。如需調整，繼續描述即可。`);
+    } else {
+      document.getElementById('canvas-loading').classList.add('hidden');
+      if (currentPrototypeHtml) { document.getElementById('canvas-frame').style.display = 'block'; }
+      else { document.getElementById('canvas-empty').style.display = ''; }
+      document.getElementById('canvas-status').textContent = '等待描述';
+      addCanvasMessage('ai', data.message || '請描述您的產品需求。');
+    }
+    canvasHistory.push({ role: 'ai', text: data.message || '已更新設計' });
+  } catch (e) {
+    stopProgress();
+    document.getElementById('canvas-loading').classList.add('hidden');
+    if (currentPrototypeHtml) { document.getElementById('canvas-frame').style.display = 'block'; }
+    else { document.getElementById('canvas-empty').style.display = ''; }
+    document.getElementById('canvas-status').textContent = '生成失敗，請重試';
+    addCanvasMessage('ai', `❌ 生成失敗：${e.message || '網路逾時'}。請稍後重試。`);
+  }
+}
+
+async function confirmDesign() {
+  if (!currentPrototypeHtml) return;
+  const btn = document.getElementById('confirm-design-btn');
+  btn.textContent = '儲存確認設計...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`${PM}/prototype/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        project_id: canvasProjectId,
+        html: currentPrototypeHtml,
+        history: canvasHistory,
+        line_user_id: currentUser?.userId || 'demo'
+      })
+    });
+    if (!res.ok) throw new Error(await res.text());
+
+    btn.textContent = '✅ 設計已確認！';
+    btn.style.background = 'linear-gradient(135deg,#00b900,#00d900)';
+    document.getElementById('canvas-status').textContent = '設計已確認，請留意 LINE 付款通知';
+    addCanvasMessage('ai', '🎉 您的設計已確認！系統將透過 LINE 發送訂金付款資訊，完成後即開始開發。');
+    setTimeout(() => closeCanvas(), 4000);
+  } catch (e) {
+    btn.textContent = '✅ 確認設計，開始開發';
+    btn.disabled = false;
+    alert('確認失敗：' + e.message);
+  }
+}
+
 // ── AUTH ──────────────────────────────────────────────────────
 function doLiffLogin() {
   if(!liffReady){ demoMode(); return; }
@@ -962,14 +1194,11 @@ function demoMode() {
 
 // ── INIT ─────────────────────────────────────────────────────
 function getPageParam() {
-  const VALID = ['products','status','history','docs','report'];
-  // 1. Check hash (#history)
+  const VALID = ['products','status','history','docs','report','canvas'];
   const hash = window.location.hash.replace('#','').split('?')[0];
   if (hash && VALID.includes(hash)) return hash;
-  // 2. Check query param ?page=xxx
   const direct = new URLSearchParams(window.location.search).get('page');
   if (direct && VALID.includes(direct)) return direct;
-  // 3. Check liff.state for encoded params
   try {
     const liffState = new URLSearchParams(window.location.search).get('liff.state');
     if (liffState) {
@@ -988,10 +1217,13 @@ async function init() {
     liffReady = true;
     if(liff.isLoggedIn()) await afterLogin();
   } catch { liffReady = false; }
-  // Navigate AFTER LIFF init so URL params are stable
   const pg = getPageParam();
-  const VALID = ['products','status','history','docs','report'];
-  if (pg && VALID.includes(pg)) showView(pg);
+  const VALID_VIEWS = ['products','status','history','docs','report'];
+  if (pg === 'canvas') {
+    openCanvas();
+  } else if (pg && VALID_VIEWS.includes(pg)) {
+    showView(pg);
+  }
 }
 document.addEventListener('DOMContentLoaded', init);
 </script>
