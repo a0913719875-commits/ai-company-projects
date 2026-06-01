@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交通車管理中心</title>
+    <!-- Tailwind CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Custom colors and styles for futuristic tech UI */
+        :root {
+            --bg-dark: #07070f;
+            --accent-purple: #7c6cff;
+            --text-light: #e0e0e0;
+            --border-glow: rgba(124, 108, 255, 0.6);
+            --shadow-glow: rgba(124, 108, 255, 0.4);
+            --card-bg-subtle: rgba(15, 15, 25, 0.8);
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif; /* Modern, readable font */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            width: 100%;
+        }
+
+        /* Neon glow effects for text */
+        .neon-text {
+            color: var(--accent-purple);
+            text-shadow: 0 0 5px var(--accent-purple), 0 0 10px var(--accent-purple);
+        }
+
+        /* Neon border for cards/sections */
+        .neon-border {
+            border: 1px solid var(--accent-purple);
+            box-shadow: 0 0 8px var(--border-glow);
+            transition: box-shadow 0.3s ease-in-out;
+        }
+        .neon-border:hover {
+            box-shadow: 0 0 15px var(--border-glow);
+        }
+
+        /* Primary Neon Button */
+        .neon-button {
+            background-color: var(--accent-purple);
+            color: var(--bg-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem; /* Tailwind rounded-md */
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 0 5px var(--accent-purple);
+            border: none;
+            cursor: pointer;
+        }
+        .neon-button:hover {
+            box-shadow: 0 0 15px var(--border-glow), 0 0 25px var(--accent-purple);
+            transform: translateY(-1px);
+        }
+        .neon-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Secondary Neon Button (Outline) */
+        .neon-button-secondary {
+            background-color: transparent;
+            color: var(--accent-purple);
+            border: 1px solid var(--accent-purple);
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 0 5px var(--border-glow);
+            cursor: pointer;
+        }
+        .neon-button-secondary:hover {
+            background-color: var(--accent-purple);
+            color: var(--bg-dark);
+            box-shadow: 0 0 15px var(--border-glow), 0 0 25px var(--accent-purple);
+            transform: translateY(-1px);
+        }
+        .neon-button-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+            background-color: transparent;
+            color: var(--accent-purple);
+            transform: none;
+        }
+
+        /* Card background with subtle transparency */
+        .card-bg {
+            background-color: var(--card-bg-subtle);
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 1.5rem;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Input field styling */
+        .neon-input {
+            background-color: var(--card-bg-subtle);
+            border: 1px solid var(--accent-purple);
+            color: var(--text-light);
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            box-shadow: 0 0 5px var(--border-glow);
+            transition: all 0.2s ease-in-out;
+        }
+        .neon-input:focus {
+            outline: none;
+            box-shadow: 0 0 10px var(--accent-purple), 0 0 20px var(--accent-purple);
+            border-color: var(--accent-purple);
+        }
+        .neon-input::placeholder {
+            color: rgba(224, 224, 224, 0.6);
+        }
+
+        /* Status indicators */
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px; /* Tailwind rounded-full */
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            box-shadow: 0 0 3px rgba(124, 108, 255, 0.4);
+        }
+        .status-badge.on-time { background-color: #16a34a; color: #dcfce7; } /* green-600 */
+        .status-badge.delayed { background-color: #dc2626; color: #fee2e2; } /* red-600 */
+        .status-badge.departed { background-color: #f59e0b; color: #fffbeb; } /* amber-500 */
+        .status-badge.arrived { background-color: #0ea5e9; color: #e0f2fe; } /* sky-500 */
+        .status-badge.cancelled { background-color: #6b7280; color: #e5e7eb; } /* gray-500 */
+        .status-badge.scheduled { background-color: var(--accent-purple); color: var(--bg-dark); } /* accent-purple */
+
+        /* Modal styling */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--accent-purple);
+            box-shadow: 0 0 20px var(--border-glow);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            max-width: 90%;
+            width: 500px;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease-in-out;
+            position: relative;
+        }
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            .modal-content {
+                padding: 1.5rem;
+                max-width: 95%;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-black">
+    <div class="container py-8">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-extrabold neon-text mb-4 tracking-wider">交通車管理中心</h1>
+            <p class="text-lg text-gray-400">即時掌握交通車狀態與乘載資訊</p>
+        </header>
+
+        <!-- Statistics Section -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="card-bg neon-border text-center p-6">
+                <p class="text-gray-400 text-sm mb-2">總路線數</p>
+                <p id="totalRoutes" class="text-3xl font-bold neon-text">0</p>
+            </div>
+            <div class="card-bg neon-border text-center p-6">
+                <p class="text-gray-400 text-sm mb-2">運行中班次</p>
+                <p id="activeShuttles" class="text-3xl font-bold neon-text">0</p>
+            </div>
+            <div class="card-bg neon-border text-center p-6">
+                <p class="text-gray-400 text-sm mb-2">總乘載人數</p>
+                <p id="totalPassengers" class="text-3xl font-bold neon-text">0</p>
+            </div>
+        </section>
+
+        <!-- Search and Filter Section -->
+        <section class="mb-8">
+            <div class="flex flex-col md:flex-row gap-4">
+                <input type="text" id="searchInput" placeholder="搜尋路線名稱、司機或車牌..." class="flex-grow neon-input">
+                <button id="resetSearchBtn" class="neon-button-secondary">重置搜尋</button>
+            </div>
+        </section>
+
+        <!-- Shuttle List/Table -->
+        <section>
+            <h2 class="text-2xl font-bold neon-text mb-6">交通車列表</h2>
+            <div id="shuttleList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Shuttle cards will be injected here by JavaScript -->
+            </div>
+            <p id="noResults" class="text-center text-gray-500 mt-8 hidden">無符合條件的交通車</p>
+        </section>
+    </div>
+
+    <!-- Details Modal -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold neon-text mb-4">交通車詳情</h3>
+            <div id="modalContentDetails" class="text-gray-300 space-y-3">
+                <!-- Details will be injected here -->
+            </div>
+            <div class="flex justify-end mt-6">
+                <button id="closeModalBtn" class="neon-button-secondary">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'shuttleData';
+
+        // Initial Sample Data (5+ entries)
+        let shuttles = [
+            {
+                id: 'S001',
+                name: '科學園區接駁線 A',
+                departureTime: '08:00',
+                arrivalTime: '08:45',
+                startLocation: '市區轉運站',
+                endLocation: '科學園區創新大樓',
+                capacity: 40,
+                currentPassengers: 25,
+                status: '準點', // 準點, 延遲, 已發車, 已抵達, 取消
+                driver: '王小明',
+                vehiclePlate: 'ABC-1234',
+                stops: ['市區轉運站', '科技路口', '園區西門', '創新大樓']
+            },
+            {
+                id: 'S002',
+                name: '工業區通勤專線',
+                departureTime: '08:30',
+                arrivalTime: '09:15',
+                startLocation: '火車站前',
+                endLocation: '工業區南門',
+                capacity: 30,
+                currentPassengers: 30, // Full
+                status: '已發車',
+                driver: '李大華',
+                vehiclePlate: 'DEF-5678',
+                stops: ['火車站前', '交流道口', '工業區北門', '工業區南門']
+            },
+            {
+                id: 'S003',
+                name: '高鐵站接駁線',
+                departureTime: '09:00',
+                arrivalTime: '09:30',
+                startLocation: '市區行政中心',
+                endLocation: '高鐵站',
+                capacity: 20,
+                currentPassengers: 10,
+                status: '延遲',
+                driver: '張美麗',
+                vehiclePlate: 'GHI-9012',
+                stops: ['市區行政中心', '市民廣場', '高鐵站']
+            },
+            {
+                id: 'S004',
+                name: '大學城循環線',
+                departureTime: '09:15',
+                arrivalTime: '10:00',
+                startLocation: '大學宿舍',
+                endLocation: '大學研究中心',
+                capacity: 50,
+                currentPassengers: 45,
+                status: '準點',
+                driver: '陳志強',
+                vehiclePlate: 'JKL-3456',
+                stops: ['大學宿舍', '圖書館', '實驗大樓', '研究中心']
+            },
+            {
+                id: 'S005',
+                name: '夜間加班車',
+                departureTime: '18:30',
+                arrivalTime: '19:10',
+                startLocation: '科學園區創新大樓',
+                endLocation: '市區轉運站',
+                capacity: 40,
+                currentPassengers: 18,
+                status: '準點',
+                driver: '林國華',
+                vehiclePlate: 'MNO-7890',
+                stops: ['創新大樓', '園區西門', '科技路口', '市區轉運站']
+            },
+            {
+                id: 'S006',
+                name: '假日觀光專車',
+                departureTime: '10:00',
+                arrivalTime: '11:00',
+                startLocation: '遊客中心',
+                endLocation: '觀光景點A',
+                capacity: 35,
+                currentPassengers: 0,
+                status: '準點',
+                driver: '黃雅玲',
+                vehiclePlate: 'PQR-1122',
+                stops: ['遊客中心', '景點入口', '觀光景點A']
+            }
+        ];
+
+        // Load data from localStorage if available
+        function loadShuttleData() {
+            const storedData = localStorage.getItem(STORAGE_KEY);
+            if (storedData) {
+                shuttles = JSON.parse(storedData);
+            }
+        }
+
+        // Save data to localStorage
+        function saveShuttleData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(shuttles));
+        }
+
+        // Get status badge class based on status string
+        function getStatusBadgeClass(status) {
+            switch (status) {
+                case '準點': return 'on-time';
+                case '延遲': return 'delayed';
+                case '已發車': return 'departed';
+                case '已抵達': return 'arrived';
+                case '取消': return 'cancelled';
+                default: return 'scheduled';
+            }
+        }
+
+        // Render shuttle list and update statistics
+        function renderShuttles(filteredShuttles = shuttles) {
+            const shuttleListDiv = document.getElementById('shuttleList');
+            shuttleListDiv.innerHTML = ''; // Clear previous list
+
+            if (filteredShuttles.length === 0) {
+                document.getElementById('noResults').classList.remove('hidden');
+            } else {
+                document.getElementById('noResults').classList.add('hidden');
+            }
+
+            filteredShuttles.forEach(shuttle => {
+                const isFull = shuttle.currentPassengers >= shuttle.capacity;
+                const isCancelled = shuttle.status === '取消';
+                const cardHtml = `
+                    <div class="card-bg neon-border p-6 relative flex flex-col justify-between h-full">
+                        <div>
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xl font-bold neon-text">${shuttle.name}</h3>
+                                <span class="status-badge ${getStatusBadgeClass(shuttle.status)}">${shuttle.status}</span>
+                            </div>
+                            <p class="text-gray-400 mb-2">發車時間: ${shuttle.departureTime} - ${shuttle.arrivalTime}</p>
+                            <p class="text-gray-400 mb-2">路線: ${shuttle.startLocation} <span class="mx-1 text-gray-500">→</span> ${shuttle.endLocation}</p>
+                            <p class="text-gray-400 mb-4">
+                                乘載: <span class="${isFull ? 'text-red-400' : 'text-green-400'} font-semibold">${shuttle.currentPassengers}</span> / ${shuttle.capacity}
+                                ${isFull && !isCancelled ? '<span class="text-red-400 text-sm ml-2">(已滿)</span>' : ''}
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-3 mt-4">
+                            <button data-id="${shuttle.id}" class="neon-button text-sm flex-grow view-details-btn">查看詳情</button>
+                            <button data-id="${shuttle.id}" class="neon-button-secondary text-sm flex-grow check-in-btn" ${isFull || isCancelled ? 'disabled' : ''}>簽到</button>
+                            <button data-id="${shuttle.id}" class="neon-button-secondary text-sm flex-grow toggle-status-btn" ${isCancelled ? 'disabled' : ''}>切換狀態</button>
+                            <button data-id="${shuttle.id}" class="neon-button-secondary text-sm flex-grow cancel-btn" ${isCancelled ? 'disabled' : ''}>取消班次</button>
+                        </div>
+                    </div>
+                `;
+                shuttleListDiv.innerHTML += cardHtml;
+            });
+
+            updateStatistics();
+            attachEventListeners();
+        }
+
+        // Update statistics display
+        function updateStatistics() {
+            document.getElementById('totalRoutes').innerText = shuttles.length;
+            const active = shuttles.filter(s => s.status !== '取消' && s.status !== '已抵達').length;
+            document.getElementById('activeShuttles').innerText = active;
+            const totalPassengers = shuttles.reduce((sum, s) => sum + s.currentPassengers, 0);
+            document.getElementById('totalPassengers').innerText = totalPassengers;
+        }
+
+        // Attach event listeners for dynamic elements (after rendering)
+        function attachEventListeners() {
+            document.querySelectorAll('.view-details-btn').forEach(button => {
+                button.onclick = (e) => showDetailsModal(e.target.dataset.id);
+            });
+            document.querySelectorAll('.check-in-btn').forEach(button => {
+                button.onclick = (e) => checkIn(e.target.dataset.id);
+            });
+            document.querySelectorAll('.cancel-btn').forEach(button => {
+                button.onclick = (e) => cancelShuttle(e.target.dataset.id);
+            });
+            document.querySelectorAll('.toggle-status-btn').forEach(button => {
+                button.onclick = (e) => toggleShuttleStatus(e.target.dataset.id);
+            });
+        }
+
+        // Helper to re-render with current search filter
+        function reRenderWithCurrentFilter() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = shuttles.filter(shuttle =>
+                shuttle.name.toLowerCase().includes(searchTerm) ||
+                shuttle.driver.toLowerCase().includes(searchTerm) ||
+                shuttle.vehiclePlate.toLowerCase().includes(searchTerm) ||
+                shuttle.startLocation.toLowerCase().includes(searchTerm) ||
+                shuttle.endLocation.toLowerCase().includes(searchTerm)
+            );
+            renderShuttles(filtered);
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', reRenderWithCurrentFilter);
+
+        document.getElementById('resetSearchBtn').addEventListener('click', () => {
+            document.getElementById('searchInput').value = '';
+            renderShuttles();
+        });
+
+        // Action: Check-in a passenger
+        function checkIn(id) {
+            const shuttle = shuttles.find(s => s.id === id);
+            if (shuttle && shuttle.currentPassengers < shuttle.capacity && shuttle.status !== '取消') {
+                shuttle.currentPassengers++;
+                saveShuttleData();
+                reRenderWithCurrentFilter();
+            } else if (shuttle && shuttle.currentPassengers >= shuttle.capacity) {
+                alert('該班次已滿載，無法簽到！');
+            } else if (shuttle && shuttle.status === '取消') {
+                alert('該班次已取消，無法簽到！');
+            }
+        }
+
+        // Action: Cancel shuttle
+        function cancelShuttle(id) {
+            const shuttle = shuttles.find(s => s.id === id);
+            if (shuttle && shuttle.status !== '取消' && confirm(`確定要取消 ${shuttle.name} 班次嗎？`)) {
+                shuttle.status = '取消';
+                saveShuttleData();
+                reRenderWithCurrentFilter();
+            }
+        }
+
+        // Action: Toggle shuttle status (for demonstration)
+        function toggleShuttleStatus(id) {
+            const shuttle = shuttles.find(s => s.id === id);
+            if (shuttle && shuttle.status !== '取消') {
+                const currentStatus = shuttle.status;
+                const nextStatusMap = {
+                    '準點': '已發車',
+                    '延遲': '已發車',
+                    '已發車': '已抵達',
+                    '已抵達': '準點' // Cycle back for demo purposes
+                };
+                shuttle.status = nextStatusMap[currentStatus] || '準點'; // Default to '準點'
+                saveShuttleData();
+                reRenderWithCurrentFilter();
+            } else if (shuttle && shuttle.status === '取消') {
+                alert('已取消的班次無法切換狀態，請先重新啟用。'); // Could add a re-activate button
+            }
+        }
+
+        // Modal Logic
+        const detailsModal = document.getElementById('detailsModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const modalContentDetails = document.getElementById('modalContentDetails');
+
+        function showDetailsModal(id) {
+            const shuttle = shuttles.find(s => s.id === id);
+            if (shuttle) {
+                modalContentDetails.innerHTML = `
+                    <p><strong class="neon-text">路線名稱:</strong> ${shuttle.name}</p>
+                    <p><strong class="neon-text">班次編號:</strong> ${shuttle.id}</p>
+                    <p><strong class="neon-text">發車時間:</strong> ${shuttle.departureTime}</p>
+                    <p><strong class="neon-text">預計抵達:</strong> ${shuttle.arrivalTime}</p>
+                    <p><strong class="neon-text">起點:</strong> ${shuttle.startLocation}</p>
+                    <p><strong class="neon-text">終點:</strong> ${shuttle.endLocation}</p>
+                    <p><strong class="neon-text">目前狀態:</strong> <span class="status-badge ${getStatusBadgeClass(shuttle.status)}">${shuttle.status}</span></p>
+                    <p><strong class="neon-text">乘載人數:</strong> ${shuttle.currentPassengers} / ${shuttle.capacity}</p>
+                    <p><strong class="neon-text">司機:</strong> ${shuttle.driver}</p>
+                    <p><strong class="neon-text">車牌號碼:</strong> ${shuttle.vehiclePlate}</p>
+                    <p><strong class="neon-text">停靠站點:</strong> ${shuttle.stops.join(' → ')}</p>
+                `;
+                detailsModal.classList.add('active');
+            }
+        }
+
+        closeModalBtn.addEventListener('click', () => {
+            detailsModal.classList.remove('active');
+        });
+
+        // Close modal when clicking outside
+        detailsModal.addEventListener('click', (e) => {
+            if (e.target === detailsModal) {
+                detailsModal.classList.remove('active');
+            }
+        });
+
+        // Initial load of data and rendering
+        loadShuttleData();
+        renderShuttles();
+    </script>
+</body>
+</html>
