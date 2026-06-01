@@ -5,137 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>台股籌碼選股</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            font-family: 'Inter', system-ui, sans-serif;
             background-color: #07070f;
             color: #ffffff;
-            padding: 2.5rem 3rem;
-            margin: 0;
-            animation: fadeIn 0.3s ease-out;
-        }
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 5rem;
-        }
-        h1 {
-            font-size: 2rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            margin: 0;
-        }
-        .stats {
-            display: flex;
-            gap: 1.5rem;
-        }
-        .stat {
-            background-color: #0f1020;
-            border-radius: 16px;
-            padding: 1.5rem 2rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .stat:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
-        }
-        .buttons {
-            display: flex;
-            gap: 0.75rem;
-        }
-        button {
-            background-color: #7c6cff;
-            border: none;
-            border-radius: 8px;
-            color: #ffffff;
-            cursor: pointer;
-            padding: 0.75rem 1.5rem;
-            height: 44px;
-            font-weight: 600;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        button:hover {
-            filter: brightness(1.1);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        button:active {
-            transform: scale(0.97);
-        }
-        main {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 3rem;
+            font-family: 'Inter', system-ui, sans-serif;
+            overflow-x: hidden;
         }
         .card {
             background-color: #0f1020;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
             border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.2);
         }
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
+        .btn {
+            background-color: #7c6cff;
+            padding: 0.75rem 1.5rem;
+            height: 44px;
+            border-radius: 8px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .card-description {
-            font-size: 1rem;
-            line-height: 1.7;
-            font-weight: 400;
-            margin-bottom: 1.5rem;
+        .btn:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
         }
-        .empty-state {
-            text-align: center;
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.7);
+        .btn:active {
+            transform: scale(0.97);
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        header {
+            padding: 2.5rem 3rem;
+        }
+        main {
+            padding: 2.5rem 3rem;
+        }
+        .input:focus {
+            border-color: #7c6cff;
+            box-shadow: 0 0 0 3px rgba(124, 108, 255, 0.3);
+        }
+        .fade-in {
+            animation: fade-in 0.3s ease-out;
+        }
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
-<body>
-    <header>
-        <h1>台股籌碼選股</h1>
-        <div class="stats">
-            <div class="stat">統計數字 1</div>
-            <div class="stat">統計數字 2</div>
+<body class="fade-in">
+<header class="flex justify-between items-center">
+    <h1 class="text-4xl font-extrabold">台股籌碼選股</h1>
+    <div class="flex space-x-4">
+        <button class="btn">查看統計</button>
+        <button class="btn">新增選股</button>
+    </div>
+</header>
+<main>
+    <section class="grid lg:grid-cols-3 gap-8">
+        <div class="card p-6">
+            <h2 class="text-xl font-bold">當沖操作</h2>
+            <p class="mt-2 text-gray-400">透過籌碼分析進行每日當沖交易。</p>
+            <button class="btn mt-4">開始當沖</button>
         </div>
-        <div class="buttons">
-            <button>股票當沖</button>
-            <button>波段飆股</button>
+        <div class="card p-6">
+            <h2 class="text-xl font-bold">波段飆股</h2>
+            <p class="mt-2 text-gray-400">分析潛在波段飆股以提升收益。</p>
+            <button class="btn mt-4">查找飆股</button>
         </div>
-    </header>
-    <main id="content">
-        <div class="card">
-            <div class="card-title">股票當沖</div>
-            <div class="card-description">說明文字...</div>
-            <button>操作</button>
+        <div class="card p-6">
+            <h2 class="text-xl font-bold">選股記錄</h2>
+            <p class="mt-2 text-gray-400">查看過去選股記錄及其表現。</p>
+            <button class="btn mt-4">查看記錄</button>
         </div>
-        <div class="card">
-            <div class="card-title">波段飆股</div>
-            <div class="card-description">說明文字...</div>
-            <button>操作</button>
+    </section>
+    <section class="mt-12">
+        <!-- Placeholder for charts and statistical analysis -->
+        <div id="empty-state" class="flex justify-center items-center h-64 text-gray-500">
+            目前沒有數據顯示
         </div>
-    </main>
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const content = document.getElementById('content');
-            if (!localStorage.getItem('data')) {
-                const emptyState = document.createElement('div');
-                emptyState.className = 'empty-state';
-                emptyState.textContent = '目前沒有資料，請新增一些選股策略。';
-                content.appendChild(emptyState);
-            }
-        });
-    </script>
+    </section>
+</main>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!localStorage.getItem('stocks')) {
+            document.getElementById('empty-state').textContent = '目前沒有數據顯示';
+        }
+    });
+</script>
 </body>
 </html>
+```
+
+```python
