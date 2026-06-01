@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客戶資料建檔</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: #fefce8; }
+        .card { background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); transition: all 0.2s cubic-bezier(0.4,0,0.2,1); }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); }
+        .btn { background-color: #f59e0b; color: white; padding: 0.75rem 1.5rem; border-radius: 9999px; transition: all 0.2s cubic-bezier(0.4,0,0.2,1); }
+        .btn:hover { brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .btn:active { scale: 0.97; }
+        .input:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.5); }
+    </style>
+</head>
+<body class="p-8">
+    <header class="flex justify-between items-center py-5">
+        <h1 class="text-4xl font-extrabold text-gray-800">客戶資料建檔</h1>
+        <button onclick="exportData()" class="btn">匯出資料</button>
+    </header>
+    <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="customer-list" class="col-span-full card p-5">
+            <h2 class="text-2xl font-bold mb-4">客戶列表</h2>
+            <div class="mb-4">
+                <input type="text" id="searchInput" class="input w-full border border-gray-300 p-2 rounded" placeholder="搜尋客戶..." oninput="searchCustomer()">
+            </div>
+            <ul id="customerData" class="space-y-4">
+                <!-- Customers list will be here -->
+            </ul>
+            <div id="emptyState" class="text-center text-gray-600 py-5">目前沒有客戶資料。</div>
+        </div>
+        <div class="card p-5">
+            <h3 class="text-2xl font-bold mb-4">新增客戶</h3>
+            <form onsubmit="addCustomer(event)">
+                <div class="mb-3">
+                    <label class="block text-sm font-bold mb-1">姓名</label>
+                    <input type="text" id="name" class="input w-full border border-gray-300 p-2 rounded" required>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-bold mb-1">生日</label>
+                    <input type="date" id="birthday" class="input w-full border border-gray-300 p-2 rounded" required>
+                </div>
+                <div>
+                    <button type="submit" class="btn w-full mt-3">新增客戶</button>
+                </div>
+            </form>
+        </div>
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', loadData);
+
+        function loadData() {
+            const data = localStorage.getItem('customers');
+            const customers = data ? JSON.parse(data) : [
+                { name: '王小明', birthday: '1990-02-15' },
+                { name: '李小花', birthday: '1985-07-20' },
+                { name: '張大強', birthday: '1975-12-05' }
+            ];
+            localStorage.setItem('customers', JSON.stringify(customers));
+            renderCustomers(customers);
+        }
+
+        function renderCustomers(customers) {
+            const list = document.getElementById('customerData');
+            list.innerHTML = '';
+            if (customers.length > 0) {
+                customers.forEach((c, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between items-center p-4 bg-white rounded shadow';
+                    li.innerHTML = `
+                        <span>${c.name} - ${c.birthday}</span>
+                        <button onclick="removeCustomer(${index})" class="btn">刪除</button>
+                    `;
+                    list.appendChild(li);
+                });
+                document.getElementById('emptyState').style.display = 'none';
+            } else {
+                document.getElementById('emptyState').style.display = 'block';
+            }
+        }
+
+        function addCustomer(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const birthday = document.getElementById('birthday').value;
+            let customers = JSON.parse(localStorage.getItem('customers')) || [];
+            customers.push({ name, birthday });
+            localStorage.setItem('customers', JSON.stringify(customers));
+            renderCustomers(customers);
+            event.target.reset();
+        }
+
+        function removeCustomer(index) {
+            if (confirm('確定要刪除這個客戶資料嗎？')) {
+                let customers = JSON.parse(localStorage.getItem('customers'));
+                customers.splice(index, 1);
+                localStorage.setItem('customers', JSON.stringify(customers));
+                renderCustomers(customers);
+            }
+        }
+
+        function searchCustomer() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const customers = JSON.parse(localStorage.getItem('customers')) || [];
+            const filtered = customers.filter(c => c.name.toLowerCase().includes(query));
+            renderCustomers(filtered);
+        }
+
+        function exportData() {
+            const dataStr = localStorage.getItem('customers');
+            const dataUri = 'data:text/json;charset=utf-8,' + encodeURIComponent(dataStr);
+            const exportFileName = 'customers.json';
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileName);
+            linkElement.click();
+        }
+    </script>
+</body>
+</html>

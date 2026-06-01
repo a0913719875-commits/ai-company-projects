@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: #f0f4f8;
+            padding: 1.25rem 1rem;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .button {
+            background-color: #2563eb;
+            color: #ffffff;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .button:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .button:active {
+            transform: scale(0.97);
+        }
+        .input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5);
+        }
+        @media (min-width: 640px) {
+            body {
+                padding: 2.5rem 3rem;
+            }
+        }
+    </style>
+    <title>記帳本</title>
+</head>
+<body class="fade-in">
+    <header class="flex justify-between items-center mb-8">
+        <h1 class="text-2xl font-extrabold text-gray-800">記帳本</h1>
+        <div class="text-gray-700">
+            <span id="totalAmount">總金額: 0</span>
+        </div>
+        <button class="button px-4 py-2 rounded shadow" onclick="toggleModal('add')">新增記錄</button>
+    </header>
+    <main>
+        <section id="recordsSection" class="grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            <!-- 記帳記錄卡片 -->
+        </section>
+        <div id="emptyState" class="text-center text-sm text-gray-600 mt-12" style="display: none;">
+            尚無記錄，請使用「新增記錄」按鈕來添加。
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div id="modal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center" style="display: none;">
+        <div class="card p-6 w-full max-w-md">
+            <h2 class="text-xl font-bold mb-4">新增記錄</h2>
+            <form id="recordForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">項目名稱</label>
+                    <input type="text" id="itemName" class="input mt-1 block w-full py-2 px-3 border border-gray-300 rounded focus:outline-none"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">金額</label>
+                    <input type="number" id="amount" class="input mt-1 block w-full py-2 px-3 border border-gray-300 rounded focus:outline-none"/>
+                </div>
+                <div class="flex justify-between">
+                    <button type="button" class="button px-4 py-2 rounded" onclick="addRecord()">確認</button>
+                    <button type="button" class="px-4 py-2 rounded border" onclick="toggleModal('close')">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            loadRecords();
+            document.body.classList.add('fade-in');
+        });
+
+        let records = JSON.parse(localStorage.getItem('records')) || [];
+
+        function loadRecords() {
+            const section = document.getElementById('recordsSection');
+            section.innerHTML = '';
+            let total = 0;
+            records.forEach((record, index) => {
+                total += record.amount;
+                const card = document.createElement('div');
+                card.className = 'card p-4';
+                card.innerHTML = `
+                    <div class="flex justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold">${record.name}</h3>
+                            <p class="mt-1 text-sm text-gray-500"><span>金額: </span>${record.amount}元</p>
+                            <p class="mt-1 text-sm text-gray-400">記錄時間: ${new Date(record.timestamp).toLocaleDateString()}</p>
+                        </div>
+                        <button class="text-red-500" onclick="deleteRecord(${index})">刪除</button>
+                    </div>
+                `;
+                section.appendChild(card);
+            });
+            document.getElementById('totalAmount').innerText = `總金額: ${total}`;
+            document.getElementById('emptyState').style.display = records.length === 0 ? 'block' : 'none';
+        }
+
+        function toggleModal(action) {
+            const modal = document.getElementById('modal');
+            if (action === 'add') {
+                modal.style.display = 'flex';
+            } else {
+                modal.style.display = 'none';
+                document.getElementById('recordForm').reset();
+            }
+        }
+        
+        function addRecord() {
+            const name = document.getElementById('itemName').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+
+            if (!name.trim() || isNaN(amount)) {
+                alert('請填寫完整資料');
+                return;
+            }
+
+            const newRecord = {
+                name,
+                amount,
+                timestamp: Date.now()
+            };
+            records.push(newRecord);
+            localStorage.setItem('records', JSON.stringify(records));
+            loadRecords();
+            toggleModal('close');
+        }
+
+        function deleteRecord(index) {
+            if (confirm('你確定要刪除這筆記錄嗎？')) {
+                records.splice(index, 1);
+                localStorage.setItem('records', JSON.stringify(records));
+                loadRecords();
+            }
+        }
+    </script>
+</body>
+</html>
