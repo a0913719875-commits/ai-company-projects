@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 查詢表格</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <title>ai查詢表格</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -12,124 +12,155 @@
             background-color: #0a0a0a;
             color: #f5f5f5;
             padding: 2.5rem 3rem;
-            animation: fadeIn 0.3s ease-out;
         }
         .card {
             background-color: #141414;
             border-radius: 16px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             padding: 1.5rem 2rem;
-            transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+            margin-bottom: 5rem;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 10px rgba(0, 0, 0, 0.1);
         }
-        .button {
-            padding: 0.75rem 1.5rem;
-            height: 44px;
+        button {
             background-color: #d4af37;
+            color: #141414;
+            padding: 0.75rem 1.5rem;
             border-radius: 8px;
             transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        .button:hover {
+        button:hover {
             filter: brightness(1.1);
             transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        .button:active {
+        button:active {
             transform: scale(0.97);
-        }
-        .input:focus {
-            outline: none;
-            border-color: #d4af37;
-            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.5);
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
         }
     </style>
 </head>
 <body>
-    <header class="mb-8">
-        <h1 class="text-2xl font-extrabold mb-4">司機接送明單</h1>
-        <p class="text-lg">查詢與管理司機接送明細，並能回覆客戶訊息。</p>
-        <button class="button mt-4">新增明單</button>
+    <header class="flex justify-between items-center mb-12">
+        <h1 class="text-2xl font-extrabold">AI 查詢表格</h1>
+        <div class="flex space-x-4">
+            <span id="total-drivers" class="text-xl">司機總數：<span id="driver-count">0</span></span>
+            <button id="add-entry-btn">新增明單</button>
+        </div>
     </header>
     
-    <main class="grid lg:grid-cols-2 gap-8">
-        <section class="card" id="summary">
-            <h2 class="text-xl font-bold mb-2">核對資料摘要</h2>
-            <p class="text-base mb-4">總行數：<span id="totalCount">0</span></p>
-        </section>
+    <main>
+        <div id="entries-container" class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3"></div>
 
-        <section class="card" id="recordsSection">
-            <h2 class="text-xl font-bold mb-2">所有接送明單</h2>
-            <table class="w-full">
-                <thead>
-                    <tr>
-                        <th class="border-b border-gray-700 pb-2">司機名</th>
-                        <th class="border-b border-gray-700 pb-2">乘客名</th>
-                        <th class="border-b border-gray-700 pb-2">日期/時間</th>
-                        <th class="border-b border-gray-700 pb-2">編輯</th>
-                    </tr>
-                </thead>
-                <tbody id="recordsTable">
-                    <tr class="text-center" id="emptyState">
-                        <td colspan="4" class="py-4 text-gray-500">目前沒有資料</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
+        <template id="entry-template">
+            <div class="card">
+                <h2 class="text-xl font-bold">司機: <span class="driver-name"></span></h2>
+                <p class="text-base">接送時間: <span class="pickup-time"></span></p>
+                <p class="text-base">目的地: <span class="destination"></span></p>
+                <p class="text-base">回覆訊息: <span class="message"></span></p>
+                <div class="flex justify-end space-x-2 mt-4">
+                    <button class="edit-entry">編輯</button>
+                    <button class="delete-entry">刪除</button>
+                </div>
+            </div>
+        </template>
+
+        <div id="empty-state" class="text-center mt-12 hidden">
+            <p class="text-xl">目前沒有任何接送明單。</p>
+        </div>
     </main>
 
     <script>
-        const recordsSection = document.getElementById('recordsSection');
-        const recordsTable = document.getElementById('recordsTable');
-        const emptyState = document.getElementById('emptyState');
-        const totalCount = document.getElementById('totalCount');
-
-        let records = JSON.parse(localStorage.getItem('driverRecords')) || [];
-
-        function renderRecords() {
-            recordsTable.innerHTML = '';
-            if (!records.length) {
-                recordsTable.appendChild(emptyState);
+        const entries = JSON.parse(localStorage.getItem('entries')) || [];
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            if (entries.length === 0) {
+                addSampleData();
             } else {
-                records.forEach((record, index) => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="border-b border-gray-700 py-2">${record.driverName}</td>
-                        <td class="border-b border-gray-700 py-2">${record.passengerName}</td>
-                        <td class="border-b border-gray-700 py-2">${record.datetime}</td>
-                        <td class="border-b border-gray-700 py-2">
-                            <button class="button" onclick="editRecord(${index})">編輯</button>
-                        </td>
-                    `;
-                    recordsTable.appendChild(row);
-                });
+                updateUI();
             }
-            totalCount.textContent = records.length;
+        });
+
+        function addSampleData() {
+            const sampleEntries = [
+                { driver: '王小明', time: '08:00', destination: '台北市立醫院', message: '已接送' },
+                { driver: '陳美麗', time: '14:30', destination: '桃園醫院', message: '塞車可能會晚到' },
+                { driver: '張大中', time: '10:00', destination: '新竹醫療區', message: '正在上高速公路' }
+            ];
+            sampleEntries.forEach(entry => insertEntry(entry, false));
+            updateUI();
+            saveEntries();
         }
 
-        function addRecord(driverName, passengerName, datetime) {
-            records.push({ driverName, passengerName, datetime });
-            localStorage.setItem('driverRecords', JSON.stringify(records));
-            renderRecords();
+        function updateUI() {
+            const container = document.getElementById('entries-container');
+            container.innerHTML = '';
+            entries.forEach((entry, index) => renderEntry(entry, index, container));
+            document.getElementById('driver-count').textContent = entries.length;
+            document.getElementById('empty-state').classList.toggle('hidden', entries.length > 0);
         }
 
-        function editRecord(index) {
-            const record = records[index];
-            const newDriverName = prompt("Edit Driver Name", record.driverName) || record.driverName;
-            const newPassengerName = prompt("Edit Passenger Name", record.passengerName) || record.passengerName;
-            const newDatetime = prompt("Edit Date/Time", record.datetime) || record.datetime;
-            records[index] = { driverName: newDriverName, passengerName: newPassengerName, datetime: newDatetime };
-            localStorage.setItem('driverRecords', JSON.stringify(records));
-            renderRecords();
+        function renderEntry(entry, index, container) {
+            const template = document.getElementById('entry-template').content.cloneNode(true);
+            template.querySelector('.driver-name').textContent = entry.driver;
+            template.querySelector('.pickup-time').textContent = entry.time;
+            template.querySelector('.destination').textContent = entry.destination;
+            template.querySelector('.message').textContent = entry.message;
+            template.querySelector('.edit-entry').addEventListener('click', () => editEntry(index));
+            template.querySelector('.delete-entry').addEventListener('click', () => deleteEntry(index));
+            container.appendChild(template);
         }
 
-        renderRecords();
+        function insertEntry(entryData, save = true) {
+            entries.push({
+                driver: entryData.driver || '未命名司機',
+                time: entryData.time || '未指定時間',
+                destination: entryData.destination || '未指定目的地',
+                message: entryData.message || '無訊息'
+            });
+            if (save) {
+                saveEntries();
+            }
+            updateUI();
+        }
+
+        document.getElementById('add-entry-btn').addEventListener('click', () => {
+            const newEntry = { driver: '新司機', time: 'XX:XX', destination: '新目的地', message: '新訊息' };
+            insertEntry(newEntry);
+        });
+
+        function editEntry(index) {
+            const entry = entries[index];
+            const newDriver = prompt("請輸入司機姓名：", entry.driver);
+            if (newDriver !== null) entry.driver = newDriver;
+            
+            const newTime = prompt("請輸入接送時間（HH:MM）：", entry.time);
+            if (newTime !== null) entry.time = newTime;
+            
+            const newDestination = prompt("請輸入目的地：", entry.destination);
+            if (newDestination !== null) entry.destination = newDestination;
+
+            const newMessage = prompt("請輸入回覆訊息：", entry.message);
+            if (newMessage !== null) entry.message = newMessage;
+
+            saveEntries();
+            updateUI();
+        }
+
+        function deleteEntry(index) {
+            if (confirm('確定要刪除這筆明單嗎？')) {
+                entries.splice(index, 1);
+                saveEntries();
+                updateUI();
+            }
+        }
+
+        function saveEntries() {
+            localStorage.setItem('entries', JSON.stringify(entries));
+        }
     </script>
 </body>
 </html>
