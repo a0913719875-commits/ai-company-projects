@@ -215,69 +215,73 @@
 
   <!-- GEMINI CANVAS VIEW -->
   <div id="view-canvas" class="hidden" style="position:fixed;inset:0;background:#07070f;z-index:200;display:flex;flex-direction:column;">
+
     <!-- Canvas Header -->
-    <div style="padding:12px 16px;background:#0f1020;border-bottom:1px solid #1a1d35;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-      <div>
-        <div style="font-weight:800;font-size:16px;">🎨 AI Design Canvas</div>
-        <div style="font-size:11px;color:#7c6cff;" id="canvas-status">描述您想要的產品，AI 即時生成</div>
+    <div style="padding:10px 14px;background:#0f1020;border-bottom:1px solid #1a1d35;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div style="min-width:0;">
+        <div style="font-weight:800;font-size:15px;">🎨 AI Design Canvas</div>
+        <div style="font-size:11px;color:#7c6cff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="canvas-status">描述您想要的產品，AI 即時生成</div>
       </div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="closeCanvas()" style="background:transparent;border:1px solid #333;color:#aaa;padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;">✕ 離開</button>
-        <button id="confirm-design-btn" onclick="confirmDesign()" class="hidden" style="background:linear-gradient(135deg,#00b900,#00d900);border:none;color:white;padding:8px 18px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;">✅ 確認設計，開始開發</button>
+      <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px;">
+        <button onclick="closeCanvas()" style="background:transparent;border:1px solid #333;color:#aaa;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;">✕</button>
+        <button id="confirm-design-btn" onclick="confirmDesign()" class="hidden" style="background:linear-gradient(135deg,#00b900,#00d900);border:none;color:white;padding:7px 14px;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;">✅ 確認開發</button>
       </div>
     </div>
 
-    <!-- Canvas Body: Chat + Preview -->
-    <div style="flex:1;display:flex;overflow:hidden;min-height:0;">
+    <!-- Tab Bar -->
+    <div style="display:flex;background:#0a0b18;border-bottom:1px solid #1a1d35;flex-shrink:0;">
+      <button id="canvas-tab-chat" onclick="switchCanvasTab('chat')" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:transparent;border:none;color:#7c6cff;border-bottom:2px solid #7c6cff;cursor:pointer;">💬 對話</button>
+      <button id="canvas-tab-preview" onclick="switchCanvasTab('preview')" style="flex:1;padding:10px;font-size:13px;font-weight:600;background:transparent;border:none;color:#555;border-bottom:2px solid transparent;cursor:pointer;">🎨 設計預覽</button>
+    </div>
 
-      <!-- Left: Chat Panel -->
-      <div style="width:340px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid #1a1d35;background:#0a0b18;">
-        <div id="canvas-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
-          <div style="background:#1a1d35;border-radius:12px;padding:12px;font-size:13px;color:#aaa;">
-            👋 你好！請描述你想要開發的產品，例如：<br><br>
-            「我想做一個台股選股系統，可以追蹤外資買賣超」<br><br>
-            AI 會根據你的描述即時生成 UI 設計，你可以隨時要求修改。
-          </div>
-        </div>
-
-        <!-- Chat Input -->
-        <div style="padding:12px;border-top:1px solid #1a1d35;">
-          <div style="display:flex;gap-8px;align-items:flex-end;gap:8px;">
-            <textarea id="canvas-input" rows="3" placeholder="描述需求或修改要求..." style="flex:1;background:#1a1d35;border:1px solid #2a2d45;border-radius:10px;padding:10px;color:white;font-size:13px;resize:none;outline:none;font-family:inherit;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCanvasMsg();}"></textarea>
-            <button onclick="sendCanvasMsg()" style="background:linear-gradient(135deg,#7c6cff,#00d4ff);border:none;color:white;padding:10px 16px;border-radius:10px;font-weight:700;cursor:pointer;height:60px;flex-shrink:0;">發送</button>
-          </div>
-          <div style="font-size:11px;color:#444;margin-top:6px;">Enter 發送 · Shift+Enter 換行</div>
+    <!-- Chat Panel -->
+    <div id="canvas-panel-chat" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;background:#0a0b18;">
+      <div id="canvas-messages" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;">
+        <div style="background:#1a1d35;border-radius:12px;padding:12px;font-size:13px;color:#aaa;line-height:1.6;">
+          👋 你好！請描述你想要開發的產品，例如：<br><br>
+          「我想做一個台股選股系統，可以追蹤外資買賣超」<br><br>
+          AI 會即時生成 UI 設計，可以隨時要求修改，滿意後確認即開始開發。
         </div>
       </div>
-
-      <!-- Right: Preview Panel -->
-      <div style="flex:1;position:relative;background:#111;display:flex;flex-direction:column;">
-        <!-- Preview Loading -->
-        <div id="canvas-loading" class="hidden" style="position:absolute;inset:0;background:#07070f;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;">
-          <div style="font-size:48px;margin-bottom:16px;">⚡</div>
-          <div style="font-size:18px;font-weight:700;color:#7c6cff;margin-bottom:8px;">Gemini 正在生成 UI...</div>
-          <div style="font-size:13px;color:#888;" id="canvas-loading-msg">分析需求中...</div>
-          <div style="margin-top:20px;width:200px;height:3px;background:#1a1d35;border-radius:2px;overflow:hidden;">
-            <div id="canvas-progress" style="height:100%;background:linear-gradient(90deg,#7c6cff,#00d4ff);width:0%;transition:width 0.5s;"></div>
-          </div>
+      <!-- Chat Input -->
+      <div style="padding:10px;border-top:1px solid #1a1d35;background:#0a0b18;">
+        <div style="display:flex;align-items:flex-end;gap:8px;">
+          <textarea id="canvas-input" rows="2" placeholder="描述需求或修改要求..." style="flex:1;background:#1a1d35;border:1px solid #2a2d45;border-radius:10px;padding:10px;color:white;font-size:14px;resize:none;outline:none;font-family:inherit;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCanvasMsg();}"></textarea>
+          <button onclick="sendCanvasMsg()" style="background:linear-gradient(135deg,#7c6cff,#00d4ff);border:none;color:white;padding:10px 18px;border-radius:10px;font-weight:700;cursor:pointer;font-size:15px;flex-shrink:0;height:52px;">發送</button>
         </div>
+        <div style="font-size:11px;color:#444;margin-top:4px;text-align:center;">Enter 發送 · Shift+Enter 換行</div>
+      </div>
+    </div>
 
-        <!-- Empty State -->
-        <div id="canvas-empty" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#333;">
-          <div style="font-size:64px;margin-bottom:16px;">🎨</div>
-          <div style="font-size:20px;font-weight:700;color:#555;">在左邊描述你的產品</div>
-          <div style="font-size:13px;color:#444;margin-top:8px;">AI 會在這裡即時呈現設計</div>
-        </div>
-
-        <!-- Prototype iframe -->
-        <iframe id="canvas-frame" style="flex:1;border:none;display:none;" sandbox="allow-scripts allow-same-origin"></iframe>
-
-        <!-- Preview Footer -->
-        <div id="canvas-preview-info" class="hidden" style="padding:8px 16px;background:#0f1020;border-top:1px solid #1a1d35;display:flex;justify-between;align-items:center;">
-          <div style="font-size:12px;color:#888;" id="canvas-version">版本 1</div>
-          <div style="font-size:12px;color:#7c6cff;">如需修改，在左邊繼續描述</div>
+    <!-- Preview Panel -->
+    <div id="canvas-panel-preview" style="flex:1;display:none;flex-direction:column;overflow:hidden;min-height:0;background:#111;position:relative;">
+      <!-- Loading -->
+      <div id="canvas-loading" class="hidden" style="position:absolute;inset:0;background:#07070f;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;">
+        <div style="font-size:48px;margin-bottom:16px;">⚡</div>
+        <div style="font-size:17px;font-weight:700;color:#7c6cff;margin-bottom:8px;">Gemini 正在生成 UI...</div>
+        <div style="font-size:13px;color:#888;" id="canvas-loading-msg">分析需求中...</div>
+        <div style="margin-top:20px;width:200px;height:3px;background:#1a1d35;border-radius:2px;overflow:hidden;">
+          <div id="canvas-progress" style="height:100%;background:linear-gradient(90deg,#7c6cff,#00d4ff);width:0%;transition:width 0.5s;"></div>
         </div>
       </div>
+      <!-- Empty State -->
+      <div id="canvas-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#333;">
+        <div style="font-size:56px;margin-bottom:12px;">🎨</div>
+        <div style="font-size:18px;font-weight:700;color:#555;">在對話中描述產品</div>
+        <div style="font-size:13px;color:#444;margin-top:6px;">AI 會在這裡即時呈現設計</div>
+      </div>
+      <!-- iframe -->
+      <iframe id="canvas-frame" style="flex:1;border:none;display:none;width:100%;height:100%;" sandbox="allow-scripts allow-same-origin"></iframe>
+      <!-- Preview bottom bar -->
+      <div id="canvas-preview-info" class="hidden" style="padding:8px 14px;background:#0f1020;border-top:1px solid #1a1d35;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+        <div style="font-size:12px;color:#888;" id="canvas-version">版本 1</div>
+        <button onclick="switchCanvasTab('chat')" style="background:rgba(124,108,255,0.15);border:1px solid rgba(124,108,255,0.4);color:#7c6cff;padding:5px 12px;border-radius:8px;font-size:12px;cursor:pointer;">💬 繼續修改</button>
+      </div>
+    </div>
+
+    <!-- Preview Ready Toast -->
+    <div id="canvas-toast" style="display:none;position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7c6cff,#00d4ff);color:white;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;white-space:nowrap;z-index:100;box-shadow:0 4px 20px rgba(124,108,255,0.5);">
+      🎨 設計已生成！點「設計預覽」查看
     </div>
   </div>
 
@@ -998,6 +1002,43 @@ let canvasHistory = [];
 let currentPrototypeHtml = null;
 let canvasProjectId = null;
 let canvasVersion = 0;
+let canvasCurrentTab = 'chat';
+
+function switchCanvasTab(tab) {
+  canvasCurrentTab = tab;
+  const chatPanel = document.getElementById('canvas-panel-chat');
+  const previewPanel = document.getElementById('canvas-panel-preview');
+  const tabChat = document.getElementById('canvas-tab-chat');
+  const tabPreview = document.getElementById('canvas-tab-preview');
+
+  if (tab === 'chat') {
+    chatPanel.style.display = 'flex';
+    previewPanel.style.display = 'none';
+    tabChat.style.color = '#7c6cff';
+    tabChat.style.borderBottomColor = '#7c6cff';
+    tabPreview.style.color = '#555';
+    tabPreview.style.borderBottomColor = 'transparent';
+    setTimeout(() => document.getElementById('canvas-input').focus(), 100);
+  } else {
+    chatPanel.style.display = 'none';
+    previewPanel.style.display = 'flex';
+    tabChat.style.color = '#555';
+    tabChat.style.borderBottomColor = 'transparent';
+    tabPreview.style.color = '#7c6cff';
+    tabPreview.style.borderBottomColor = '#7c6cff';
+    hideCanvasToast();
+  }
+}
+
+function showCanvasToast(msg) {
+  const t = document.getElementById('canvas-toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => hideCanvasToast(), 5000);
+}
+function hideCanvasToast() {
+  document.getElementById('canvas-toast').style.display = 'none';
+}
 
 function openCanvas(projectId) {
   canvasProjectId = projectId || `canvas_${Date.now()}`;
@@ -1006,19 +1047,21 @@ function openCanvas(projectId) {
   canvasVersion = 0;
 
   document.getElementById('canvas-messages').innerHTML = `
-    <div style="background:#1a1d35;border-radius:12px;padding:12px;font-size:13px;color:#aaa;">
+    <div style="background:#1a1d35;border-radius:12px;padding:12px;font-size:13px;color:#aaa;line-height:1.6;">
       👋 你好！請描述你想要開發的產品，例如：<br><br>
       「我想做一個台股選股系統，可以追蹤外資買賣超」<br><br>
-      AI 會根據你的描述即時生成 UI 設計，你可以隨時要求修改。確認滿意後按「確認設計」，Codex 即開始部署。
+      AI 會即時生成 UI 設計，可以隨時要求修改，滿意後確認即開始開發。
     </div>
   `;
   document.getElementById('canvas-frame').style.display = 'none';
-  document.getElementById('canvas-empty').style.display = '';
+  document.getElementById('canvas-empty').style.display = 'flex';
   document.getElementById('canvas-loading').classList.add('hidden');
   document.getElementById('confirm-design-btn').classList.add('hidden');
   document.getElementById('canvas-preview-info').classList.add('hidden');
   document.getElementById('canvas-status').textContent = '描述您想要的產品，AI 即時生成';
   document.getElementById('canvas-progress').style.width = '0%';
+  hideCanvasToast();
+  switchCanvasTab('chat');
 
   const el = document.getElementById('view-canvas');
   el.style.display = 'flex';
@@ -1070,10 +1113,12 @@ async function sendCanvasMsg() {
   addCanvasMessage('user', msg);
   canvasHistory.push({ role: 'user', text: msg });
 
+  // Switch to preview tab and show loading
+  switchCanvasTab('preview');
   document.getElementById('canvas-loading').classList.remove('hidden');
   document.getElementById('canvas-empty').style.display = 'none';
-  document.getElementById('canvas-status').textContent = 'Gemini 生成中...';
   document.getElementById('canvas-frame').style.display = 'none';
+  document.getElementById('canvas-status').textContent = 'Gemini 生成中...';
 
   const stopProgress = simulateProgress(30000);
 
@@ -1105,23 +1150,29 @@ async function sendCanvasMsg() {
       document.getElementById('canvas-loading').classList.add('hidden');
       document.getElementById('canvas-preview-info').classList.remove('hidden');
       document.getElementById('canvas-version').textContent = `版本 ${canvasVersion}`;
-      document.getElementById('canvas-status').textContent = '設計完成，可繼續調整或確認';
+      document.getElementById('canvas-status').textContent = `版本${canvasVersion} ✓ 可繼續修改或確認`;
       document.getElementById('confirm-design-btn').classList.remove('hidden');
-      addCanvasMessage('ai', data.message || `✅ UI 版本 ${canvasVersion} 已生成，右側可預覽。如需調整，繼續描述即可。`);
+
+      // Stay on preview, show toast on chat tab
+      addCanvasMessage('ai', data.message || `✅ UI 版本 ${canvasVersion} 已生成！點「繼續修改」返回對話調整。`);
     } else {
       document.getElementById('canvas-loading').classList.add('hidden');
-      if (currentPrototypeHtml) { document.getElementById('canvas-frame').style.display = 'block'; }
-      else { document.getElementById('canvas-empty').style.display = ''; }
+      document.getElementById('canvas-empty').style.display = 'flex';
       document.getElementById('canvas-status').textContent = '等待描述';
+      switchCanvasTab('chat');
       addCanvasMessage('ai', data.message || '請描述您的產品需求。');
     }
     canvasHistory.push({ role: 'ai', text: data.message || '已更新設計' });
   } catch (e) {
     stopProgress();
     document.getElementById('canvas-loading').classList.add('hidden');
-    if (currentPrototypeHtml) { document.getElementById('canvas-frame').style.display = 'block'; }
-    else { document.getElementById('canvas-empty').style.display = ''; }
+    if (currentPrototypeHtml) {
+      document.getElementById('canvas-frame').style.display = 'block';
+    } else {
+      document.getElementById('canvas-empty').style.display = 'flex';
+    }
     document.getElementById('canvas-status').textContent = '生成失敗，請重試';
+    switchCanvasTab('chat');
     addCanvasMessage('ai', `❌ 生成失敗：${e.message || '網路逾時'}。請稍後重試。`);
   }
 }
@@ -1129,7 +1180,7 @@ async function sendCanvasMsg() {
 async function confirmDesign() {
   if (!currentPrototypeHtml) return;
   const btn = document.getElementById('confirm-design-btn');
-  btn.textContent = '儲存確認設計...';
+  btn.textContent = '儲存中...';
   btn.disabled = true;
 
   try {
@@ -1145,13 +1196,14 @@ async function confirmDesign() {
     });
     if (!res.ok) throw new Error(await res.text());
 
-    btn.textContent = '✅ 設計已確認！';
+    btn.textContent = '✅ 已確認！';
     btn.style.background = 'linear-gradient(135deg,#00b900,#00d900)';
-    document.getElementById('canvas-status').textContent = '設計已確認，請留意 LINE 付款通知';
-    addCanvasMessage('ai', '🎉 您的設計已確認！系統將透過 LINE 發送訂金付款資訊，完成後即開始開發。');
-    setTimeout(() => closeCanvas(), 4000);
+    document.getElementById('canvas-status').textContent = '設計已確認，約 5 分鐘後收到 LINE 付款通知';
+    addCanvasMessage('ai', '🎉 設計已確認！系統正在部署預覽版本，約 5 分鐘後透過 LINE 發送付款資訊。');
+    switchCanvasTab('chat');
+    setTimeout(() => closeCanvas(), 5000);
   } catch (e) {
-    btn.textContent = '✅ 確認設計，開始開發';
+    btn.textContent = '✅ 確認開發';
     btn.disabled = false;
     alert('確認失敗：' + e.message);
   }
