@@ -1003,6 +1003,7 @@ let currentPrototypeHtml = null;
 let canvasProjectId = null;
 let canvasVersion = 0;
 let canvasCurrentTab = 'chat';
+let _canvasGenerating = false; // true while Gemini API is in progress
 
 function switchCanvasTab(tab) {
   canvasCurrentTab = tab;
@@ -1027,9 +1028,20 @@ function switchCanvasTab(tab) {
     tabPreview.style.color = '#7c6cff';
     tabPreview.style.borderBottomColor = '#7c6cff';
     hideCanvasToast();
-    // Load iframe via URL now that panel is visible
-    if (canvasProjectId) {
+
+    if (_canvasGenerating) {
+      // Still generating — keep showing the loading animation in preview panel
+      document.getElementById('canvas-loading').classList.remove('hidden');
+      document.getElementById('canvas-frame').style.display = 'none';
+      document.getElementById('canvas-empty').style.display = 'none';
+    } else if (canvasProjectId && currentPrototypeHtml) {
+      // Generation done — load preview URL
       renderInFrame(canvasProjectId);
+    } else {
+      // Nothing generated yet
+      document.getElementById('canvas-loading').classList.add('hidden');
+      document.getElementById('canvas-frame').style.display = 'none';
+      document.getElementById('canvas-empty').style.display = 'flex';
     }
   }
 }
@@ -1064,6 +1076,7 @@ function openCanvas(projectId) {
   document.getElementById('canvas-preview-info').classList.add('hidden');
   document.getElementById('canvas-status').textContent = '描述您想要的產品，AI 即時生成';
   document.getElementById('canvas-progress').style.width = '0%';
+  _canvasGenerating = false;
   hideCanvasToast();
   switchCanvasTab('chat');
 
@@ -1144,15 +1157,20 @@ async function sendCanvasMsg() {
   msgs.appendChild(genDiv);
   msgs.scrollTop = msgs.scrollHeight;
 
+  _canvasGenerating = true;
   document.getElementById('canvas-status').textContent = '生成中...';
-  document.getElementById('canvas-loading').classList.remove('hidden');
-  document.getElementById('canvas-empty').style.display = 'none';
-  document.getElementById('canvas-frame').style.display = 'none';
+  // Only show loading in preview panel if user is already on that tab
+  if (canvasCurrentTab === 'preview') {
+    document.getElementById('canvas-loading').classList.remove('hidden');
+    document.getElementById('canvas-frame').style.display = 'none';
+    document.getElementById('canvas-empty').style.display = 'none';
+  }
   document.getElementById('canvas-progress').style.width = '0%';
 
   const stopProgress = simulateProgress(25000);
 
   const unlock = () => {
+    _canvasGenerating = false;
     _canvasSending = false;
     input.disabled = false;
     sendBtn.disabled = false;
@@ -1184,25 +1202,34 @@ async function sendCanvasMsg() {
       currentPrototypeHtml = data.html;
       canvasVersion++;
 
-      // Don't render iframe yet — will render when user switches to preview tab
-      // (ensures iframe loads in visible DOM, most reliable in LINE WebView)
-
       document.getElementById('canvas-preview-info').classList.remove('hidden');
       document.getElementById('canvas-version').textContent = `版本 ${canvasVersion}`;
       document.getElementById('canvas-status').textContent = `版本 ${canvasVersion} ✓ 已生成`;
       document.getElementById('confirm-design-btn').classList.remove('hidden');
 
+      // If user already switched to preview tab, render immediately
+      if (canvasCurrentTab === 'preview') {
+        renderInFrame(canvasProjectId);
+      }
+
+      // Always add chat message (user can switch back to chat)
       const aiText = data.message || `UI 版本 ${canvasVersion} 已生成`;
-      addCanvasMessage('ai',
-        `${aiText}<br><br>` +
-        `<button onclick="switchCanvasTab('preview')" style="background:linear-gradient(135deg,#7c6cff,#00d4ff);border:none;color:white;padding:8px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">🎨 查看設計預覽</button>`
-      );
+      if (canvasCurrentTab !== 'preview') {
+        // On chat tab: show message with preview button
+        addCanvasMessage('ai',
+          `${aiText}<br><br>` +
+          `<button onclick="switchCanvasTab('preview')" style="background:linear-gradient(135deg,#7c6cff,#00d4ff);border:none;color:white;padding:8px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">🎨 查看設計預覽</button>`
+        );
+      } else {
+        // On preview tab: add message silently, show toast to go back to chat
+        addCanvasMessage('ai', `${aiText} — 點「對話」Tab 可繼續修改`);
+      }
       canvasHistory.push({ role: 'ai', text: aiText });
     } else {
       document.getElementById('canvas-loading').classList.add('hidden');
-      if (currentPrototypeHtml) {
-        document.getElementById('canvas-frame').style.display = 'block';
-      } else {
+      if (currentPrototypeHtml && canvasCurrentTab === 'preview') {
+        renderInFrame(canvasProjectId);
+      } else if (!currentPrototypeHtml) {
         document.getElementById('canvas-empty').style.display = 'flex';
       }
       document.getElementById('canvas-status').textContent = '請描述您想要的產品';
