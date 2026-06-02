@@ -1063,11 +1063,15 @@ function switchCanvasTab(tab) {
     previewPanel.style.display = 'flex';
     tabChat.style.color = '#555'; tabChat.style.borderBottomColor = 'transparent';
     tabPreview.style.color = '#7c6cff'; tabPreview.style.borderBottomColor = '#7c6cff';
+    // Always hide loading first
+    document.getElementById('canvas-loading').classList.add('hidden');
     if (currentPrototypeHtml) {
-      document.getElementById('canvas-loading').classList.add('hidden');
       document.getElementById('canvas-empty').style.display = 'none';
       document.getElementById('canvas-ready').style.display = 'flex';
       document.getElementById('canvas-ready-version').textContent = 'UI 版本 ' + canvasVersion + ' 已生成';
+    } else {
+      document.getElementById('canvas-ready').style.display = 'none';
+      document.getElementById('canvas-empty').style.display = 'flex';
     }
   }
 }
@@ -1119,6 +1123,7 @@ function sendCanvasMsg() {
     btn.disabled = false;
     btn.textContent = '發送';
     input.focus();
+    document.getElementById('canvas-loading').classList.add('hidden');
     try {
       var data = JSON.parse(controller.responseText);
       if (data.html && data.html.indexOf('<!DOCTYPE') >= 0) {
