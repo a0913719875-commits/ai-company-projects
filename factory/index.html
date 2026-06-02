@@ -247,7 +247,7 @@
       <div style="padding:10px;border-top:1px solid #1a1d35;background:#0a0b18;">
         <div style="display:flex;align-items:flex-end;gap:8px;">
           <textarea id="canvas-input" rows="2" placeholder="描述需求或修改要求..." style="flex:1;background:#1a1d35;border:1px solid #2a2d45;border-radius:10px;padding:10px;color:white;font-size:14px;resize:none;outline:none;font-family:inherit;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCanvasMsg();}"></textarea>
-          <button onclick="sendCanvasMsg()" style="background:linear-gradient(135deg,#7c6cff,#00d4ff);border:none;color:white;padding:10px 18px;border-radius:10px;font-weight:700;cursor:pointer;font-size:15px;flex-shrink:0;height:52px;">發送</button>
+          <button id="canvas-send-btn" onclick="sendCanvasMsg()" style="background:linear-gradient(135deg,#7c6cff,#00d4ff);border:none;color:white;padding:10px 18px;border-radius:10px;font-weight:700;cursor:pointer;font-size:15px;flex-shrink:0;height:52px;">發送</button>
         </div>
         <div style="font-size:11px;color:#444;margin-top:4px;text-align:center;">Enter 發送 · Shift+Enter 換行</div>
       </div>
@@ -1008,302 +1008,195 @@ let canvasHistory = [];
 let currentPrototypeHtml = null;
 let canvasProjectId = null;
 let canvasVersion = 0;
-let canvasCurrentTab = 'chat';
-let _canvasGenerating = false; // true while Gemini API is in progress
-
-function switchCanvasTab(tab) {
-  canvasCurrentTab = tab;
-  const chatPanel = document.getElementById('canvas-panel-chat');
-  const previewPanel = document.getElementById('canvas-panel-preview');
-  const tabChat = document.getElementById('canvas-tab-chat');
-  const tabPreview = document.getElementById('canvas-tab-preview');
-
-  if (tab === 'chat') {
-    chatPanel.style.display = 'flex';
-    previewPanel.style.display = 'none';
-    tabChat.style.color = '#7c6cff';
-    tabChat.style.borderBottomColor = '#7c6cff';
-    tabPreview.style.color = '#555';
-    tabPreview.style.borderBottomColor = 'transparent';
-    setTimeout(() => document.getElementById('canvas-input').focus(), 100);
-  } else {
-    chatPanel.style.display = 'none';
-    previewPanel.style.display = 'flex';
-    tabChat.style.color = '#555';
-    tabChat.style.borderBottomColor = 'transparent';
-    tabPreview.style.color = '#7c6cff';
-    tabPreview.style.borderBottomColor = '#7c6cff';
-    hideCanvasToast();
-
-    if (_canvasGenerating) {
-      document.getElementById('canvas-loading').classList.remove('hidden');
-      document.getElementById('canvas-empty').style.display = 'none';
-      document.getElementById('canvas-ready').style.display = 'none';
-    } else if (currentPrototypeHtml) {
-      showPreviewReady(canvasHistory.filter(h=>h.role==='ai').slice(-1)[0]?.text || '');
-    } else {
-      document.getElementById('canvas-loading').classList.add('hidden');
-      document.getElementById('canvas-ready').style.display = 'none';
-      document.getElementById('canvas-empty').style.display = 'flex';
-    }
-  }
-}
-
-function showCanvasToast(msg) {
-  const t = document.getElementById('canvas-toast');
-  t.textContent = msg;
-  t.style.display = 'block';
-  setTimeout(() => hideCanvasToast(), 5000);
-}
-function hideCanvasToast() {
-  document.getElementById('canvas-toast').style.display = 'none';
-}
 
 function openCanvas(projectId) {
-  canvasProjectId = projectId || `canvas_${Date.now()}`;
+  canvasProjectId = projectId || 'canvas_' + Date.now();
   canvasHistory = [];
   currentPrototypeHtml = null;
   canvasVersion = 0;
 
-  document.getElementById('canvas-messages').innerHTML = `
-    <div style="background:#1a1d35;border-radius:12px;padding:12px;font-size:13px;color:#aaa;line-height:1.6;">
-      👋 你好！請描述你想要開發的產品，例如：<br><br>
-      「我想做一個台股選股系統，可以追蹤外資買賣超」<br><br>
-      AI 會即時生成 UI 設計，可以隨時要求修改，滿意後確認即開始開發。
-    </div>
-  `;
+  document.getElementById('canvas-messages').innerHTML =
+    '<div style="background:#1a1d35;border-radius:12px;padding:12px;font-size:13px;color:#aaa;line-height:1.7;">' +
+    '👋 請描述你想要開發的產品，例如：<br><br>' +
+    '「我想做一個台股選股系統，可以追蹤外資買賣超」<br><br>' +
+    'AI 即時生成 UI 設計，滿意後按確認即開始開發。</div>';
+
   document.getElementById('canvas-ready').style.display = 'none';
   document.getElementById('canvas-empty').style.display = 'flex';
   document.getElementById('canvas-loading').classList.add('hidden');
   document.getElementById('confirm-design-btn').classList.add('hidden');
-  document.getElementById('canvas-ready').style.display = 'none';
   document.getElementById('canvas-status').textContent = '描述您想要的產品，AI 即時生成';
-  document.getElementById('canvas-progress').style.width = '0%';
-  _canvasGenerating = false;
-  hideCanvasToast();
-  switchCanvasTab('chat');
+  document.getElementById('canvas-input').disabled = false;
+  document.getElementById('canvas-input').value = '';
 
-  const el = document.getElementById('view-canvas');
-  el.style.display = 'flex';
-  el.classList.remove('hidden');
-  setTimeout(() => document.getElementById('canvas-input').focus(), 200);
+  // Switch to chat tab
+  document.getElementById('canvas-panel-chat').style.display = 'flex';
+  document.getElementById('canvas-panel-preview').style.display = 'none';
+  document.getElementById('canvas-tab-chat').style.color = '#7c6cff';
+  document.getElementById('canvas-tab-chat').style.borderBottomColor = '#7c6cff';
+  document.getElementById('canvas-tab-preview').style.color = '#555';
+  document.getElementById('canvas-tab-preview').style.borderBottomColor = 'transparent';
+
+  document.getElementById('view-canvas').style.display = 'flex';
+  document.getElementById('view-canvas').classList.remove('hidden');
+  setTimeout(function() { document.getElementById('canvas-input').focus(); }, 200);
 }
 
 function closeCanvas() {
-  const el = document.getElementById('view-canvas');
-  el.style.display = 'none';
-  el.classList.add('hidden');
+  document.getElementById('view-canvas').style.display = 'none';
+  document.getElementById('view-canvas').classList.add('hidden');
+}
+
+function switchCanvasTab(tab) {
+  var chatPanel = document.getElementById('canvas-panel-chat');
+  var previewPanel = document.getElementById('canvas-panel-preview');
+  var tabChat = document.getElementById('canvas-tab-chat');
+  var tabPreview = document.getElementById('canvas-tab-preview');
+  if (tab === 'chat') {
+    chatPanel.style.display = 'flex';
+    previewPanel.style.display = 'none';
+    tabChat.style.color = '#7c6cff'; tabChat.style.borderBottomColor = '#7c6cff';
+    tabPreview.style.color = '#555'; tabPreview.style.borderBottomColor = 'transparent';
+    setTimeout(function(){ document.getElementById('canvas-input').focus(); }, 100);
+  } else {
+    chatPanel.style.display = 'none';
+    previewPanel.style.display = 'flex';
+    tabChat.style.color = '#555'; tabChat.style.borderBottomColor = 'transparent';
+    tabPreview.style.color = '#7c6cff'; tabPreview.style.borderBottomColor = '#7c6cff';
+    if (currentPrototypeHtml) {
+      document.getElementById('canvas-loading').classList.add('hidden');
+      document.getElementById('canvas-empty').style.display = 'none';
+      document.getElementById('canvas-ready').style.display = 'flex';
+      document.getElementById('canvas-ready-version').textContent = 'UI 版本 ' + canvasVersion + ' 已生成';
+    }
+  }
 }
 
 function addCanvasMessage(role, text) {
-  const msgs = document.getElementById('canvas-messages');
-  const div = document.createElement('div');
+  var msgs = document.getElementById('canvas-messages');
+  var div = document.createElement('div');
   if (role === 'user') {
     div.style.cssText = 'background:linear-gradient(135deg,rgba(124,108,255,0.2),rgba(0,212,255,0.1));border-radius:12px;padding:12px;font-size:13px;border:1px solid rgba(124,108,255,0.3);';
-    div.innerHTML = `<div style="font-size:11px;color:#7c6cff;margin-bottom:4px;">你</div>${text}`;
+    div.innerHTML = '<div style="font-size:11px;color:#7c6cff;margin-bottom:4px;">你</div>' + text;
   } else {
-    div.style.cssText = 'background:#1a1d35;border-radius:12px;padding:12px;font-size:13px;color:#aaa;';
-    div.innerHTML = `<div style="font-size:11px;color:#00d4ff;margin-bottom:4px;">🤖 AI</div>${text}`;
+    div.style.cssText = 'background:#1a1d35;border-radius:12px;padding:12px;font-size:13px;color:#aaa;line-height:1.6;';
+    div.innerHTML = '<div style="font-size:11px;color:#00d4ff;margin-bottom:4px;">🤖 AI</div>' + text;
   }
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
+  return div;
 }
-
-function simulateProgress(durationMs) {
-  const bar = document.getElementById('canvas-progress');
-  const msgs = ['分析需求中...', '設計 UI 架構...', 'Gemini 生成中...', '整理元件配置...'];
-  let pct = 0; let i = 0;
-  const step = 100 / (durationMs / 500);
-  const iv = setInterval(() => {
-    pct = Math.min(pct + step + Math.random() * step * 0.5, 92);
-    bar.style.width = pct + '%';
-    if (i < msgs.length) {
-      document.getElementById('canvas-loading-msg').textContent = msgs[i++];
-    }
-  }, 500);
-  return () => { clearInterval(iv); bar.style.width = '100%'; };
-}
-
-let _previewBlobUrl = null;
 
 function openPreviewInBrowser() {
   if (!currentPrototypeHtml) return;
-  try {
-    // Try blob URL first
-    if (_previewBlobUrl) URL.revokeObjectURL(_previewBlobUrl);
-    const blob = new Blob([currentPrototypeHtml], {type:'text/html;charset=utf-8'});
-    _previewBlobUrl = URL.createObjectURL(blob);
-    window.open(_previewBlobUrl, '_blank');
-  } catch(e) {
-    // Fallback: PM Center preview URL
-    window.open(`${PM}/canvas/${canvasProjectId}/preview`, '_blank');
-  }
+  var url = PM + '/canvas/' + canvasProjectId + '/preview';
+  window.open(url, '_blank');
 }
 
-function showPreviewReady(aiText) {
-  // No iframe — show a ready card with open-in-browser button
-  document.getElementById('canvas-loading').classList.add('hidden');
-  document.getElementById('canvas-empty').style.display = 'none';
-  const ready = document.getElementById('canvas-ready');
-  ready.style.display = 'flex';
-  document.getElementById('canvas-ready-version').textContent = `UI 版本 ${canvasVersion} 已生成`;
-  document.getElementById('canvas-ready-desc').textContent = aiText || '設計已完成，點擊下方按鈕查看完整互動預覽';
-}
+function sendCanvasMsg() {
+  var input = document.getElementById('canvas-input');
+  var btn = document.getElementById('canvas-send-btn');
+  var msg = input.value.trim();
+  if (!msg || btn.disabled) return;
 
-function renderInFrame() {
-  // Show the ready card (no iframe needed)
-  if (canvasCurrentTab === 'preview') {
-    showPreviewReady(canvasHistory.filter(h=>h.role==='ai').slice(-1)[0]?.text || '');
-  }
-}
-
-let _canvasSending = false;
-
-async function sendCanvasMsg() {
-  if (_canvasSending) return;
-  const input = document.getElementById('canvas-input');
-  const sendBtn = input.nextElementSibling;
-  const msg = input.value.trim();
-  if (!msg) return;
-
-  _canvasSending = true;
   input.value = '';
-  input.disabled = true;
-  sendBtn.disabled = true;
-  sendBtn.style.opacity = '0.5';
+  btn.disabled = true;
+  btn.textContent = '⏳';
 
   addCanvasMessage('user', msg);
-  canvasHistory.push({ role: 'user', text: msg });
+  canvasHistory.push({role:'user', text:msg});
 
-  // Stay on chat tab — show inline generating indicator
-  const msgs = document.getElementById('canvas-messages');
-  const genDiv = document.createElement('div');
-  genDiv.style.cssText = 'background:#1a1d35;border-radius:12px;padding:12px;font-size:13px;color:#7c6cff;display:flex;align-items:center;gap:8px;';
-  genDiv.innerHTML = `<span style="font-size:20px;animation:spin 1s linear infinite;display:inline-block;">⚡</span><span>Gemini 正在生成 UI 設計（約 20-40 秒）...</span>`;
-  msgs.appendChild(genDiv);
-  msgs.scrollTop = msgs.scrollHeight;
-
-  _canvasGenerating = true;
+  var genDiv = addCanvasMessage('ai', '⚡ Gemini 正在生成 UI 設計（約 20-40 秒）...');
   document.getElementById('canvas-status').textContent = '生成中...';
-  // Only show loading in preview panel if user is already on that tab
-  if (canvasCurrentTab === 'preview') {
-    document.getElementById('canvas-loading').classList.remove('hidden');
-    document.getElementById('canvas-ready').style.display = 'none';
-    document.getElementById('canvas-empty').style.display = 'none';
-  }
-  document.getElementById('canvas-progress').style.width = '0%';
 
-  const stopProgress = simulateProgress(25000);
+  var controller = new XMLHttpRequest();
+  controller.open('POST', PM + '/prototype/canvas', true);
+  controller.setRequestHeader('Content-Type', 'application/json');
+  controller.timeout = 85000;
 
-  const unlock = () => {
-    _canvasGenerating = false;
-    _canvasSending = false;
-    input.disabled = false;
-    sendBtn.disabled = false;
-    sendBtn.style.opacity = '1';
+  controller.onload = function() {
+    genDiv.remove();
+    btn.disabled = false;
+    btn.textContent = '發送';
     input.focus();
+    try {
+      var data = JSON.parse(controller.responseText);
+      if (data.html && data.html.indexOf('<!DOCTYPE') >= 0) {
+        currentPrototypeHtml = data.html;
+        canvasVersion++;
+        document.getElementById('confirm-design-btn').classList.remove('hidden');
+        document.getElementById('canvas-status').textContent = '版本 ' + canvasVersion + ' ✓ 已生成';
+        var aiText = data.message || ('UI 版本 ' + canvasVersion + ' 已生成');
+        canvasHistory.push({role:'ai', text: aiText});
+        addCanvasMessage('ai',
+          aiText + '<br><br>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">' +
+          '<button onclick="switchCanvasTab(\'preview\')" style="background:linear-gradient(135deg,#7c6cff,#00d4ff);border:none;color:white;padding:10px 18px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;">🎨 查看設計</button>' +
+          '<button onclick="openPreviewInBrowser()" style="background:rgba(0,180,0,0.2);border:1px solid #00d900;color:#00d900;padding:10px 18px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;">🔗 開啟預覽</button>' +
+          '</div>'
+        );
+        document.getElementById('canvas-ready-version').textContent = 'UI 版本 ' + canvasVersion + ' 已生成';
+        document.getElementById('canvas-ready-desc').textContent = aiText;
+      } else {
+        var msg2 = data.message || '請具體描述功能需求，例如：「記帳系統，有收支明細和月統計」';
+        canvasHistory.push({role:'ai', text: msg2});
+        addCanvasMessage('ai', msg2);
+        document.getElementById('canvas-status').textContent = '請描述您想要的產品';
+      }
+    } catch(e) {
+      addCanvasMessage('ai', '❌ 回應解析失敗，請重試。');
+    }
   };
 
-  try {
-    const res = await fetch(`${PM}/prototype/canvas`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: msg,
-        history: canvasHistory.slice(-6),
-        current_html: currentPrototypeHtml,
-        project_id: canvasProjectId,
-        line_user_id: currentUser?.userId || 'demo'
-      }),
-      signal: AbortSignal.timeout(80000)
-    });
-
-    stopProgress();
+  controller.onerror = function() {
     genDiv.remove();
+    btn.disabled = false; btn.textContent = '發送'; input.focus();
+    addCanvasMessage('ai', '❌ 網路錯誤，請檢查連線後重試。');
+    document.getElementById('canvas-status').textContent = '請重試';
+  };
 
-    if (!res.ok) throw new Error(await res.text());
-    const data = await res.json();
-
-    if (data.html && data.html.includes('<!DOCTYPE')) {
-      currentPrototypeHtml = data.html;
-      canvasVersion++;
-
-      document.getElementById('canvas-ready-version').textContent = `UI 版本 ${canvasVersion} 已生成`;
-      document.getElementById('canvas-status').textContent = `版本 ${canvasVersion} ✓ 已生成`;
-      document.getElementById('confirm-design-btn').classList.remove('hidden');
-
-      const aiText = data.message || `UI 版本 ${canvasVersion} 已生成`;
-      canvasHistory.push({ role: 'ai', text: aiText });
-
-      // If user already on preview tab: show ready card
-      if (canvasCurrentTab === 'preview') {
-        showPreviewReady(aiText);
-      }
-
-      // Always add chat message with preview button
-      addCanvasMessage('ai',
-        `${aiText}<br><br>` +
-        `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">` +
-        `<button onclick="switchCanvasTab('preview')" style="background:linear-gradient(135deg,#7c6cff,#00d4ff);border:none;color:white;padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">🎨 查看設計</button>` +
-        `<button onclick="openPreviewInBrowser()" style="background:rgba(0,180,0,0.2);border:1px solid rgba(0,200,0,0.4);color:#00d900;padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">🔗 開啟預覽</button>` +
-        `</div>`
-      );
-    } else {
-      document.getElementById('canvas-loading').classList.add('hidden');
-      if (currentPrototypeHtml && canvasCurrentTab === 'preview') {
-        renderInFrame(currentPrototypeHtml);
-      } else if (!currentPrototypeHtml) {
-        document.getElementById('canvas-empty').style.display = 'flex';
-      }
-      document.getElementById('canvas-status').textContent = '請描述您想要的產品';
-      const aiText = data.message || '請具體描述您想要的功能，例如：「我想做一個記帳系統，可以新增收支項目」';
-      addCanvasMessage('ai', aiText);
-      canvasHistory.push({ role: 'ai', text: aiText });
-    }
-    unlock();
-  } catch (e) {
-    stopProgress();
+  controller.ontimeout = function() {
     genDiv.remove();
-    document.getElementById('canvas-loading').classList.add('hidden');
-    if (currentPrototypeHtml && canvasCurrentTab === 'preview') showPreviewReady('');
-    else document.getElementById('canvas-empty').style.display = 'flex';
-    document.getElementById('canvas-status').textContent = '生成失敗，請重試';
-    addCanvasMessage('ai', `❌ 生成逾時，請重試。如持續發生，請重新整理頁面。`);
-    canvasHistory.push({ role: 'ai', text: '生成失敗' });
-    unlock();
-  }
+    btn.disabled = false; btn.textContent = '發送'; input.focus();
+    addCanvasMessage('ai', '❌ 生成逾時（85秒），請重新嘗試。');
+    document.getElementById('canvas-status').textContent = '請重試';
+  };
+
+  controller.send(JSON.stringify({
+    message: msg,
+    history: canvasHistory.slice(-6),
+    project_id: canvasProjectId,
+    line_user_id: (currentUser && currentUser.userId) ? currentUser.userId : 'demo'
+  }));
 }
 
-async function confirmDesign() {
+function confirmDesign() {
   if (!currentPrototypeHtml) return;
-  const btn = document.getElementById('confirm-design-btn');
+  var btn = document.getElementById('confirm-design-btn');
   btn.textContent = '儲存中...';
   btn.disabled = true;
 
-  try {
-    const res = await fetch(`${PM}/prototype/confirm`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        project_id: canvasProjectId,
-        html: currentPrototypeHtml,
-        history: canvasHistory,
-        line_user_id: currentUser?.userId || 'demo'
-      })
-    });
-    if (!res.ok) throw new Error(await res.text());
-
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', PM + '/prototype/confirm', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.timeout = 30000;
+  xhr.onload = function() {
     btn.textContent = '✅ 已確認！';
     btn.style.background = 'linear-gradient(135deg,#00b900,#00d900)';
     document.getElementById('canvas-status').textContent = '設計已確認，約 5 分鐘後收到 LINE 付款通知';
-    addCanvasMessage('ai', '🎉 設計已確認！系統正在部署預覽版本，約 5 分鐘後透過 LINE 發送付款資訊。');
-    switchCanvasTab('chat');
-    setTimeout(() => closeCanvas(), 5000);
-  } catch (e) {
-    btn.textContent = '✅ 確認開發';
-    btn.disabled = false;
-    alert('確認失敗：' + e.message);
-  }
+    addCanvasMessage('ai', '🎉 設計已確認！約 5 分鐘後透過 LINE 發送訂金付款資訊，完成後即開始開發。');
+    setTimeout(function() { closeCanvas(); }, 5000);
+  };
+  xhr.onerror = xhr.ontimeout = function() {
+    btn.textContent = '✅ 確認開發'; btn.disabled = false;
+    alert('確認失敗，請重試。');
+  };
+  xhr.send(JSON.stringify({
+    project_id: canvasProjectId,
+    html: currentPrototypeHtml,
+    history: canvasHistory,
+    line_user_id: (currentUser && currentUser.userId) ? currentUser.userId : 'demo'
+  }));
 }
 
 // ── AUTH ──────────────────────────────────────────────────────
