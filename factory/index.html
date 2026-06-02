@@ -670,12 +670,7 @@ const DOC_DATA = {
 };
 
 function showDoc(type) {
-  // Check if any completed project has unpaid balance - block docs
-  const unpaidCompleted = projects.find(p => p.status === 'completed' && p.final_payment_confirmed !== true && p.payment_status !== 'fully_paid');
-  if (unpaidCompleted && type !== 'requirement') {
-    alert('⚠️ 請先完成尾款付款後才能查看此文件。');
-    return;
-  }
+  // No payment lock on docs — API keys and documentation are always accessible
   const doc = DOC_DATA[type];
   if(!doc) return;
   document.getElementById('doc-title').textContent = doc.title;
