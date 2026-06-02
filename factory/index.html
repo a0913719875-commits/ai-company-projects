@@ -1027,9 +1027,9 @@ function switchCanvasTab(tab) {
     tabPreview.style.color = '#7c6cff';
     tabPreview.style.borderBottomColor = '#7c6cff';
     hideCanvasToast();
-    // Re-render iframe NOW that parent panel is visible
-    if (currentPrototypeHtml) {
-      renderInFrame(currentPrototypeHtml);
+    // Load iframe via URL now that panel is visible
+    if (canvasProjectId) {
+      renderInFrame(canvasProjectId);
     }
   }
 }
@@ -1108,20 +1108,11 @@ function simulateProgress(durationMs) {
   return () => { clearInterval(iv); bar.style.width = '100%'; };
 }
 
-function renderInFrame(html) {
+function renderInFrame(projectId) {
   const frame = document.getElementById('canvas-frame');
-  // Use srcdoc for LIFF compatibility (blob URLs blocked in some LINE browsers)
-  try {
-    frame.srcdoc = html;
-  } catch(e) {
-    // Fallback: document.write
-    frame.src = 'about:blank';
-    setTimeout(() => {
-      const doc = frame.contentDocument || frame.contentWindow?.document;
-      if (doc) { doc.open(); doc.write(html); doc.close(); }
-    }, 50);
-  }
-  // Always show frame & hide loading immediately (don't rely on onload)
+  // Use a real URL — most reliable in LINE WebView (no srcdoc/blob issues)
+  const previewUrl = `${PM}/canvas/${projectId}/preview?t=${Date.now()}`;
+  frame.src = previewUrl;
   frame.style.display = 'block';
   document.getElementById('canvas-loading').classList.add('hidden');
   document.getElementById('canvas-empty').style.display = 'none';
@@ -1193,7 +1184,8 @@ async function sendCanvasMsg() {
       currentPrototypeHtml = data.html;
       canvasVersion++;
 
-      renderInFrame(data.html);
+      // Don't render iframe yet — will render when user switches to preview tab
+      // (ensures iframe loads in visible DOM, most reliable in LINE WebView)
 
       document.getElementById('canvas-preview-info').classList.remove('hidden');
       document.getElementById('canvas-version').textContent = `版本 ${canvasVersion}`;
