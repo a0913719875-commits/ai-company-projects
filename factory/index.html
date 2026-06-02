@@ -1211,18 +1211,26 @@ function getPageParam() {
 }
 
 async function init() {
-  showView('home');
+  // Detect canvas page param FIRST — before showing home or doing anything
+  // This prevents the home view flashing before canvas appears
+  const pgEarly = getPageParam();
+  if (pgEarly === 'canvas') {
+    openCanvas(); // show canvas immediately, no flash
+  } else {
+    showView('home');
+  }
+
   try {
     await liff.init({liffId:LIFF_ID});
     liffReady = true;
     if(liff.isLoggedIn()) await afterLogin();
   } catch { liffReady = false; }
-  const pg = getPageParam();
-  const VALID_VIEWS = ['products','status','history','docs','report'];
-  if (pg === 'canvas') {
-    openCanvas();
-  } else if (pg && VALID_VIEWS.includes(pg)) {
-    showView(pg);
+
+  // For non-canvas pages, navigate after LIFF init
+  if (pgEarly !== 'canvas') {
+    const pg = getPageParam();
+    const VALID_VIEWS = ['products','status','history','docs','report'];
+    if (pg && VALID_VIEWS.includes(pg)) showView(pg);
   }
 }
 document.addEventListener('DOMContentLoaded', init);
