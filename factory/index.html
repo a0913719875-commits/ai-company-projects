@@ -668,6 +668,12 @@ const DOC_DATA = {
 };
 
 function showDoc(type) {
+  // Check if any completed project has unpaid balance - block docs
+  const unpaidCompleted = projects.find(p => p.status === 'completed' && p.final_payment_confirmed !== true && p.payment_status !== 'fully_paid');
+  if (unpaidCompleted && type !== 'requirement') {
+    alert('⚠️ 請先完成尾款付款後才能查看此文件。');
+    return;
+  }
   const doc = DOC_DATA[type];
   if(!doc) return;
   document.getElementById('doc-title').textContent = doc.title;
@@ -748,7 +754,7 @@ function renderProducts() {
       const finalPaid = p.final_payment_confirmed === true || p.payment_status === 'fully_paid';
       // ── 已完成 ─────────────────────────────────────────
       if (!finalPaid) {
-        // 尾款未付 - 紅色警告
+        // 尾款未付 - 紅色警告 + 付款按鈕
         return `
           <div style="background:#0f1020;border:1px solid rgba(255,68,68,0.4);border-radius:16px;padding:18px;margin-bottom:14px;">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
@@ -759,11 +765,15 @@ function renderProducts() {
               <div style="font-size:22px;margin-left:8px;">🔒</div>
             </div>
             <div style="background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.25);border-radius:10px;padding:12px;margin-bottom:12px;">
-              <div style="font-size:13px;color:#ff6666;font-weight:700;margin-bottom:4px;">⚠️ 尚未付尾款</div>
-              <div style="font-size:12px;color:#aaa;">請完成尾款付款，管理者確認後即解鎖作品。</div>
-              <div style="font-size:12px;color:#888;margin-top:6px;">銀行：彰化銀行(009) 帳號：54700101897400</div>
+              <div style="font-size:13px;color:#ff6666;font-weight:700;margin-bottom:6px;">⚠️ 尚未付尾款，無法開啟作品</div>
+              <div style="font-size:12px;color:#ccc;margin-bottom:4px;">🏦 彰化銀行(009)　帳號：<b>54700101897400</b></div>
+              <div style="font-size:12px;color:#aaa;">戶名：卓越停有限公司</div>
             </div>
-            ${features.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">${features.map(f=>`<span style="font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(255,68,68,0.08);color:#ff6666;border:1px solid rgba(255,68,68,0.2);">${f}</span>`).join('')}</div>` : ''}
+            ${features.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">${features.map(f=>`<span style="font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(255,68,68,0.08);color:#ff6666;border:1px solid rgba(255,68,68,0.2);">${f}</span>`).join('')}</div>` : ''}
+            <button onclick="sendPaymentProof()" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,#ff4444,#ff6666);border:none;color:white;font-weight:800;font-size:14px;cursor:pointer;margin-bottom:8px;">
+              📷 我已完成匯款，上傳付款截圖
+            </button>
+            <div style="font-size:11px;color:#666;text-align:center;">點擊後到 LINE 聊天傳送匯款截圖，管理者確認即解鎖</div>
           </div>`;
       }
       // 尾款已付 - 綠色可開啟
@@ -881,44 +891,87 @@ const COMMON_KEYS = {
   'GOOGLE_MAPS_KEY': 'Google Maps API Key',
 };
 
-function openApiKeys(project) {
+function sendPaymentProof() {
+  // Send message via LIFF to trigger payment flow
+  try {
+    if (typeof liff !== 'undefined' && liff.isInClient()) {
+      liff.sendMessages([{type:'text', text:'付款完成，已匯款'}])
+        .then(() => liff.closeWindow())
+        .catch(() => {
+          alert('請回到 LINE 聊天，傳送匯款截圖給我們。');
+        });
+    } else {
+      alert('請回到 LINE 聊天，拍攝匯款截圖後傳送給我們。');
+    }
+  } catch(e) {
+    alert('請回到 LINE 聊天，傳送匯款截圖給我們。');
+  }
+}
+
+async function openApiKeys(project) {
   currentApiProject = project;
   customKeys = {};
   document.getElementById('apikeys-success').classList.add('hidden');
 
-  // Show project info
+  const name = project.product_name || project.project_id;
+  const isCompleted = project.status === 'completed';
+  const isActive = ['in_progress','development','qa','deploying'].includes(project.status);
+
   document.getElementById('apikeys-project-info').innerHTML = `
-    <div class="flex items-center gap-3">
-      <span class="text-xl">🚀</span>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:24px;">${isCompleted ? '✅' : '⚙️'}</span>
       <div>
-        <div class="font-bold text-sm">${project.product_name || project.project_id}</div>
-        <div class="text-xs text-gray-500">專案 ID: ${project.project_id}</div>
+        <div style="font-weight:700;font-size:14px;">${name}</div>
+        <div style="font-size:12px;color:#888;">${isActive ? '開發中' : isCompleted ? '已完成' : project.status}</div>
       </div>
     </div>
   `;
 
-  // Auto-detect needed keys from features
-  const features = (project.features || []).join(' ').toLowerCase();
-  const req = project.requirement || '';
+  // Auto-detect needed keys from features + requirement
+  const feat = (project.features || []).join(' ').toLowerCase();
+  const req = (project.requirement || '').toLowerCase();
   const needed = [];
-  if (features.includes('pay') || req.includes('付款') || req.includes('line pay')) needed.push('LINE_PAY_CHANNEL_ID', 'LINE_PAY_CHANNEL_SECRET');
-  if (features.includes('stripe') || req.includes('stripe')) needed.push('STRIPE_SECRET_KEY');
-  if (features.includes('firebase') || req.includes('firebase')) needed.push('FIREBASE_API_KEY');
-  if (features.includes('map') || req.includes('地圖') || req.includes('google map')) needed.push('GOOGLE_MAPS_KEY');
+  if (feat.includes('pay') || req.includes('付款') || req.includes('line pay') || req.includes('linepay')) needed.push('LINE_PAY_CHANNEL_ID', 'LINE_PAY_CHANNEL_SECRET');
+  if (feat.includes('stripe') || req.includes('stripe')) needed.push('STRIPE_SECRET_KEY');
+  if (feat.includes('firebase') || req.includes('firebase')) needed.push('FIREBASE_API_KEY');
+  if (feat.includes('map') || req.includes('地圖') || req.includes('google map')) needed.push('GOOGLE_MAPS_KEY');
+  if (feat.includes('openai') || feat.includes('ai') || req.includes('ai') || req.includes('openai')) needed.push('OPENAI_API_KEY');
+  if (feat.includes('line') || req.includes('line')) needed.push('LINE_CHANNEL_SECRET');
 
-  const fieldsHtml = (needed.length > 0 ? needed : []).map(k => `
-    <div class="card p-3 mb-2">
-      <div class="text-xs font-bold mb-1" style="color:#7c6cff;">${COMMON_KEYS[k] || k}</div>
-      <div class="text-xs text-gray-500 mb-2">${k}</div>
-      <input type="password" id="key_${k}" placeholder="請輸入..."
-        class="w-full rounded-lg p-2 text-sm"
-        style="background:rgba(0,0,0,0.3);border:1px solid rgba(124,108,255,0.3);color:white;">
-    </div>
-  `).join('');
+  // Load stored keys from PM Center
+  let storedKeys = {};
+  try {
+    const r = await fetch(`${PM}/projects/${project.project_id}/keys`);
+    const d = await r.json();
+    storedKeys = d.keys || {};
+  } catch {}
 
-  document.getElementById('apikeys-fields').innerHTML = fieldsHtml || `
-    <div class="text-xs text-gray-500 mb-3">系統未自動偵測到特定金鑰需求，請手動新增。</div>
-  `;
+  if (needed.length === 0 && Object.keys(storedKeys).length === 0) {
+    // No keys needed at all
+    document.getElementById('apikeys-fields').innerHTML = `
+      <div style="text-align:center;padding:24px;color:#555;">
+        <div style="font-size:32px;margin-bottom:8px;">✓</div>
+        <div style="font-size:14px;color:#888;">此專案無需設定 API 金鑰</div>
+      </div>`;
+  } else {
+    const allKeys = [...new Set([...needed, ...Object.keys(storedKeys)])];
+    document.getElementById('apikeys-fields').innerHTML = allKeys.map(k => {
+      const isSet = storedKeys[k];
+      const isRequired = needed.includes(k);
+      return `
+        <div class="card p-3 mb-2" style="${isRequired && !isSet ? 'border-color:rgba(255,165,0,0.4);background:rgba(255,165,0,0.05);' : isSet ? 'border-color:rgba(0,255,136,0.3);' : ''}">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:12px;font-weight:700;color:${isSet?'#00ff88':isRequired?'#ffa500':'#7c6cff'};">${COMMON_KEYS[k] || k}</div>
+            <span style="font-size:11px;color:${isSet?'#00ff88':'#888'};">${isSet ? '✅ 已設定' : isRequired ? '⚠️ 需要' : '未設定'}</span>
+          </div>
+          <div style="font-size:11px;color:#555;margin-bottom:6px;">${k}</div>
+          ${isRequired && !isSet ? `<div style="font-size:11px;color:#ffa500;margin-bottom:6px;">開發中需要此金鑰，請盡快提供</div>` : ''}
+          <input type="password" id="key_${k}" placeholder="${isSet ? '已設定（重新輸入以更新）' : '請輸入...'}"
+            class="w-full rounded-lg p-2 text-sm"
+            style="background:rgba(0,0,0,0.3);border:1px solid rgba(124,108,255,0.3);color:white;">
+        </div>`;
+    }).join('');
+  }
   showView('apikeys');
 }
 
