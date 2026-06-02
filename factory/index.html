@@ -1104,48 +1104,66 @@ function simulateProgress(durationMs) {
   return () => { clearInterval(iv); bar.style.width = '100%'; };
 }
 
-let _canvasBlobUrl = null;
-
 function renderInFrame(html) {
-  // Release previous blob URL to prevent memory leak
-  if (_canvasBlobUrl) { URL.revokeObjectURL(_canvasBlobUrl); _canvasBlobUrl = null; }
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  _canvasBlobUrl = URL.createObjectURL(blob);
   const frame = document.getElementById('canvas-frame');
-  frame.onload = () => {
-    document.getElementById('canvas-loading').classList.add('hidden');
-    frame.style.display = 'block';
-  };
-  frame.src = _canvasBlobUrl;
+  // Use srcdoc for LIFF compatibility (blob URLs blocked in some LINE browsers)
+  try {
+    frame.srcdoc = html;
+  } catch(e) {
+    // Fallback: document.write
+    frame.src = 'about:blank';
+    setTimeout(() => {
+      const doc = frame.contentDocument || frame.contentWindow?.document;
+      if (doc) { doc.open(); doc.write(html); doc.close(); }
+    }, 50);
+  }
+  // Always show frame & hide loading immediately (don't rely on onload)
+  frame.style.display = 'block';
+  document.getElementById('canvas-loading').classList.add('hidden');
+  document.getElementById('canvas-empty').style.display = 'none';
 }
 
+let _canvasSending = false;
+
 async function sendCanvasMsg() {
+  if (_canvasSending) return;
   const input = document.getElementById('canvas-input');
+  const sendBtn = input.nextElementSibling;
   const msg = input.value.trim();
   if (!msg) return;
+
+  _canvasSending = true;
   input.value = '';
+  input.disabled = true;
+  sendBtn.disabled = true;
+  sendBtn.style.opacity = '0.5';
 
   addCanvasMessage('user', msg);
   canvasHistory.push({ role: 'user', text: msg });
 
   // Stay on chat tab — show inline generating indicator
-  const genId = `gen_${Date.now()}`;
   const msgs = document.getElementById('canvas-messages');
   const genDiv = document.createElement('div');
-  genDiv.id = genId;
   genDiv.style.cssText = 'background:#1a1d35;border-radius:12px;padding:12px;font-size:13px;color:#7c6cff;display:flex;align-items:center;gap:8px;';
-  genDiv.innerHTML = `<span style="font-size:18px;">⚡</span> <span>Gemini 正在生成 UI 設計（約 15-30 秒）...</span>`;
+  genDiv.innerHTML = `<span style="font-size:20px;animation:spin 1s linear infinite;display:inline-block;">⚡</span><span>Gemini 正在生成 UI 設計（約 20-40 秒）...</span>`;
   msgs.appendChild(genDiv);
   msgs.scrollTop = msgs.scrollHeight;
 
   document.getElementById('canvas-status').textContent = '生成中...';
-  // Show loading in preview panel (but don't switch tabs)
   document.getElementById('canvas-loading').classList.remove('hidden');
   document.getElementById('canvas-empty').style.display = 'none';
   document.getElementById('canvas-frame').style.display = 'none';
   document.getElementById('canvas-progress').style.width = '0%';
 
-  const stopProgress = simulateProgress(20000);
+  const stopProgress = simulateProgress(25000);
+
+  const unlock = () => {
+    _canvasSending = false;
+    input.disabled = false;
+    sendBtn.disabled = false;
+    sendBtn.style.opacity = '1';
+    input.focus();
+  };
 
   try {
     const res = await fetch(`${PM}/prototype/canvas`, {
@@ -1153,46 +1171,50 @@ async function sendCanvasMsg() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message: msg,
-        history: canvasHistory.slice(-8),
+        history: canvasHistory.slice(-6),
         current_html: currentPrototypeHtml,
         project_id: canvasProjectId,
         line_user_id: currentUser?.userId || 'demo'
       }),
-      signal: AbortSignal.timeout(75000)
+      signal: AbortSignal.timeout(80000)
     });
 
     stopProgress();
+    genDiv.remove();
 
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
 
-    // Remove generating indicator
-    genDiv.remove();
-
-    if (data.html) {
+    if (data.html && data.html.includes('<!DOCTYPE')) {
       currentPrototypeHtml = data.html;
       canvasVersion++;
 
-      // Render in iframe via Blob URL (no srcdoc freeze issue)
       renderInFrame(data.html);
 
       document.getElementById('canvas-preview-info').classList.remove('hidden');
       document.getElementById('canvas-version').textContent = `版本 ${canvasVersion}`;
-      document.getElementById('canvas-status').textContent = `版本 ${canvasVersion} ✓`;
+      document.getElementById('canvas-status').textContent = `版本 ${canvasVersion} ✓ 已生成`;
       document.getElementById('confirm-design-btn').classList.remove('hidden');
 
-      const aiText = data.message || `設計版本 ${canvasVersion} 已完成`;
-      addCanvasMessage('ai', `${aiText}<br><br><button onclick="switchCanvasTab('preview')" style="background:linear-gradient(135deg,#7c6cff,#00d4ff);border:none;color:white;padding:7px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;margin-top:4px;">🎨 查看設計預覽</button>`);
+      const aiText = data.message || `UI 版本 ${canvasVersion} 已生成`;
+      addCanvasMessage('ai',
+        `${aiText}<br><br>` +
+        `<button onclick="switchCanvasTab('preview')" style="background:linear-gradient(135deg,#7c6cff,#00d4ff);border:none;color:white;padding:8px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">🎨 查看設計預覽</button>`
+      );
       canvasHistory.push({ role: 'ai', text: aiText });
     } else {
       document.getElementById('canvas-loading').classList.add('hidden');
-      if (!currentPrototypeHtml) document.getElementById('canvas-empty').style.display = 'flex';
-      else document.getElementById('canvas-frame').style.display = 'block';
-      document.getElementById('canvas-status').textContent = '描述您想要的產品';
-      const aiText = data.message || '請描述您的產品需求。';
+      if (currentPrototypeHtml) {
+        document.getElementById('canvas-frame').style.display = 'block';
+      } else {
+        document.getElementById('canvas-empty').style.display = 'flex';
+      }
+      document.getElementById('canvas-status').textContent = '請描述您想要的產品';
+      const aiText = data.message || '請具體描述您想要的功能，例如：「我想做一個記帳系統，可以新增收支項目」';
       addCanvasMessage('ai', aiText);
       canvasHistory.push({ role: 'ai', text: aiText });
     }
+    unlock();
   } catch (e) {
     stopProgress();
     genDiv.remove();
@@ -1200,8 +1222,9 @@ async function sendCanvasMsg() {
     if (currentPrototypeHtml) document.getElementById('canvas-frame').style.display = 'block';
     else document.getElementById('canvas-empty').style.display = 'flex';
     document.getElementById('canvas-status').textContent = '生成失敗，請重試';
-    addCanvasMessage('ai', `❌ 生成逾時或失敗，請重新嘗試。`);
+    addCanvasMessage('ai', `❌ 生成逾時，請重試。如持續發生，請重新整理頁面。`);
     canvasHistory.push({ role: 'ai', text: '生成失敗' });
+    unlock();
   }
 }
 
