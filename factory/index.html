@@ -939,9 +939,6 @@ async function submitApiKeys() {
   }
 }
 
-function requestRedesign(projectId) {
-  alert('申請已送出！\n\nFrontend AI 將重新設計 UI，約 2-4 小時完成。\n完成後系統將通知您。');
-}
 
 function showUIPreview(p) {
   const style = getStyle(p.ui_style||'科技風格');
@@ -983,17 +980,6 @@ function showUIPreview(p) {
         <div class="text-xs text-gray-500">完成後頁面將顯示實際作品，UI 設計即為最終呈現。</div>
       </div>
     `}
-    <div class="card p-4">
-      <div class="text-sm font-bold mb-3">🎨 UI 更換紀錄</div>
-      <div class="flex items-center justify-between mb-3">
-        <div><div class="text-xs text-gray-500">免費更換次數</div>
-        <div class="font-bold" style="color:${(p.ui_redesign_max||3)-(p.ui_redesign_count||0)>0?'#00ff88':'#ff4466'};">剩餘 ${(p.ui_redesign_max||3)-(p.ui_redesign_count||0)} / ${p.ui_redesign_max||3} 次</div></div>
-        <div class="flex gap-1">${Array.from({length:p.ui_redesign_max||3}).map((_,i)=>`<div class="w-4 h-4 rounded-full" style="background:${i<(p.ui_redesign_count||0)?'#ffd700':'rgba(255,255,255,0.1)'};"></div>`).join('')}</div>
-      </div>
-      ${(p.ui_redesign_max||3)-(p.ui_redesign_count||0)>0 ?
-        `<button onclick="requestRedesign('${p.project_id}')" class="btn-primary w-full py-3 text-sm rounded-xl">🔄 不喜歡此設計，申請更換</button>` :
-        `<div class="text-center text-xs py-3 rounded-xl" style="background:rgba(255,68,102,0.1);color:#ff4466;">免費更換已用完 · 額外更換 NT$300</div>`}
-    </div>
   `;
   showView('ui-preview');
 }
