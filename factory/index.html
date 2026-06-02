@@ -116,7 +116,8 @@
   <div id="view-products" class="hidden fade-in px-4 pt-2">
     <div class="flex items-center gap-3 mb-4">
       <button onclick="showView('home')" class="text-gray-500 text-sm py-2 pr-3">← 返回</button>
-      <h2 class="font-bold text-lg">📦 我的產品</h2>
+      <h2 class="font-bold text-lg flex-1">📦 我的產品</h2>
+      <button onclick="refreshAndRenderProducts()" style="background:rgba(124,108,255,0.15);border:1px solid rgba(124,108,255,0.3);color:#7c6cff;padding:5px 12px;border-radius:8px;font-size:12px;cursor:pointer;">🔄 重新整理</button>
     </div>
     <div id="login-prompt" class="card p-7 text-center">
       <div class="text-5xl mb-4">🔐</div>
@@ -501,6 +502,17 @@ function showView(name) {
   window.scrollTo({top:0});
   if(name==='status') renderStatus();
   if(name==='history') renderHistory();
+  if(name==='products') refreshAndRenderProducts();
+}
+
+async function refreshAndRenderProducts() {
+  if (!currentUser) { renderProducts(); return; }
+  try {
+    const res = await fetch(`${PM}/api/customer/${currentUser.userId}/projects`);
+    const data = await res.json();
+    projects = data.projects || [];
+  } catch(e) {}
+  renderProducts();
 }
 
 // ── DEPT GRID ─────────────────────────────────────────────────
