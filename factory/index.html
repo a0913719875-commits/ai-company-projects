@@ -975,21 +975,10 @@ function openCanvas(projectId) {
     '「我想做一個台股選股系統，可以追蹤外資買賣超」<br><br>' +
     'AI 即時生成 UI 設計，滿意後按確認即開始開發。</div>';
 
-  document.getElementById('canvas-ready').style.display = 'none';
-  document.getElementById('canvas-empty').style.display = 'flex';
-  document.getElementById('canvas-loading').classList.add('hidden');
   document.getElementById('confirm-design-btn').classList.add('hidden');
   document.getElementById('canvas-status').textContent = '描述您想要的產品，AI 即時生成';
   document.getElementById('canvas-input').disabled = false;
   document.getElementById('canvas-input').value = '';
-
-  // Switch to chat tab
-  document.getElementById('canvas-panel-chat').style.display = 'flex';
-  document.getElementById('canvas-panel-preview').style.display = 'none';
-  document.getElementById('canvas-tab-chat').style.color = '#7c6cff';
-  document.getElementById('canvas-tab-chat').style.borderBottomColor = '#7c6cff';
-  document.getElementById('canvas-tab-preview').style.color = '#555';
-  document.getElementById('canvas-tab-preview').style.borderBottomColor = 'transparent';
 
   document.getElementById('view-canvas').style.display = 'flex';
   document.getElementById('view-canvas').classList.remove('hidden');
@@ -1062,7 +1051,6 @@ function sendCanvasMsg() {
     btn.disabled = false;
     btn.textContent = '發送';
     input.focus();
-    document.getElementById('canvas-loading').classList.add('hidden');
     try {
       var data = JSON.parse(controller.responseText);
       if (data.html && data.html.indexOf('<!DOCTYPE') >= 0) {
@@ -1080,8 +1068,6 @@ function sendCanvasMsg() {
           '<a href="' + previewUrl + '" target="_blank" style="display:block;text-align:center;color:#888;font-size:12px;padding:6px;text-decoration:underline;">或點此連結開啟</a>' +
           '</div>'
         );
-        document.getElementById('canvas-ready-version').textContent = 'UI 版本 ' + canvasVersion + ' 已生成';
-        document.getElementById('canvas-ready-desc').textContent = aiText;
       } else {
         var msg2 = data.message || '請具體描述功能需求，例如：「記帳系統，有收支明細和月統計」';
         canvasHistory.push({role:'ai', text: msg2});
