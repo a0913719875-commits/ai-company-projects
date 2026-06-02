@@ -6,6 +6,29 @@
   <title>AI Software Factory</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+  // Catch any uncaught error and show on screen instead of silent crash
+  window.onerror = function(msg, src, line, col, err) {
+    var el = document.getElementById('crash-screen');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'crash-screen';
+      el.style.cssText = 'position:fixed;inset:0;background:#07070f;z-index:99999;padding:24px;font-family:monospace;overflow:auto;';
+      document.body.appendChild(el);
+    }
+    el.style.display = 'block';
+    el.innerHTML = '<div style="color:#ff4466;font-size:14px;font-weight:700;margin-bottom:12px;">⚠️ LIFF 錯誤（請截圖回報）</div>' +
+      '<div style="color:#aaa;font-size:12px;line-height:1.8;">' +
+      '<b>錯誤：</b>' + msg + '<br>' +
+      '<b>位置：</b>' + src + ':' + line + ':' + col + '<br>' +
+      (err && err.stack ? '<b>Stack：</b><br>' + err.stack.substring(0,400) : '') +
+      '</div>';
+    return false;
+  };
+  window.onunhandledrejection = function(e) {
+    window.onerror('Promise rejected: ' + (e.reason || e), '', 0, 0, e.reason);
+  };
+  </script>
   <style>
     * { box-sizing: border-box; }
     body { background: #07070f; color: #fff; font-family: -apple-system, 'SF Pro Display', system-ui, sans-serif; overscroll-behavior: none; }
