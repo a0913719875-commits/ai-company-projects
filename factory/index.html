@@ -500,7 +500,7 @@ function renderStatus() {
     el.innerHTML = `<div style="text-align:center;padding:24px;color:#555;font-size:13px;">目前無進行中的專案</div>`;
     return;
   }
-  const STEP = {pending_payment:5,design_confirmed:10,planning:15,development:55,qa:80,deploying:92};
+  const STEP = {pending_payment:5,design_confirmed:10,planning:15,in_progress:55,development:55,qa:80,deploying:92};
   el.innerHTML = active.map(p => {
     const pct = STEP[p.status] || 40;
     const name = p.product_name || (p.requirement||'').substring(0,24) || p.project_id;
@@ -707,6 +707,7 @@ function renderProducts() {
     pending_payment: { label:'等待訂金', pct:5, color:'#888', desc:'等待訂金確認後啟動' },
     design_confirmed: { label:'設計確認', pct:10, color:'#7c6cff', desc:'設計已確認，等待訂金' },
     planning:    { label:'規劃中',   pct:15, color:'#7c6cff', desc:'AI 分析需求中' },
+    in_progress: { label:'開發中',   pct:55, color:'#00d4ff', desc:'Codex 正在開發功能' },
     development: { label:'開發中',   pct:55, color:'#00d4ff', desc:'Codex 正在開發功能' },
     qa:          { label:'測試中',   pct:80, color:'#ffd700', desc:'QA AI 自動化測試中' },
     deploying:   { label:'部署中',   pct:92, color:'#00ff88', desc:'部署到雲端中' },
