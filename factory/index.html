@@ -267,9 +267,13 @@
           4. 管理者確認後自動解鎖作品 ✅
         </div>
       </div>
-      <button onclick="closePaymentAndReturn()" style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#7c6cff,#00d4ff);border:none;color:white;font-weight:800;font-size:15px;cursor:pointer;margin-bottom:10px;">
-        ✅ 已完成匯款，回 LINE 傳截圖
+      <!-- Hidden file input -->
+      <input type="file" id="payment-img-input" accept="image/*" capture="environment" style="display:none" onchange="handlePaymentImage(this)">
+
+      <button onclick="document.getElementById('payment-img-input').click()" style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#00b900,#00d900);border:none;color:white;font-weight:800;font-size:15px;cursor:pointer;margin-bottom:10px;">
+        📷 直接上傳匯款截圖給管理者
       </button>
+      <div id="payment-upload-status" style="display:none;text-align:center;padding:10px;font-size:13px;color:#7c6cff;margin-bottom:10px;">上傳中...</div>
       <button onclick="document.getElementById('payment-modal').style.display='none';" style="width:100%;padding:12px;border-radius:12px;background:transparent;border:1px solid #333;color:#888;font-size:14px;cursor:pointer;">
         稍後再說
       </button>
@@ -936,7 +940,6 @@ function sendPaymentProof() {
 
 function closePaymentAndReturn() {
   document.getElementById('payment-modal').style.display = 'none';
-  // Close LIFF to go back to LINE chat for sending screenshot
   try {
     if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
       liff.closeWindow();
@@ -946,6 +949,42 @@ function closePaymentAndReturn() {
   } catch(e) {
     alert('請回到 LINE 聊天，傳送匯款截圖給我們。');
   }
+}
+
+async function handlePaymentImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const status = document.getElementById('payment-upload-status');
+  status.style.display = 'block';
+  status.textContent = '⚡ 上傳中，請稍候...';
+  status.style.color = '#7c6cff';
+
+  try {
+    const formData = new FormData();
+    formData.append('line_user_id', currentUser?.userId || 'U_unknown');
+    formData.append('image', file);
+
+    const resp = await fetch(`${PM}/upload_payment_proof`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (resp.ok) {
+      status.textContent = '✅ 截圖已直接傳送給管理者！等待確認後解鎖。';
+      status.style.color = '#00ff88';
+      setTimeout(() => {
+        document.getElementById('payment-modal').style.display = 'none';
+        status.style.display = 'none';
+      }, 3000);
+    } else {
+      throw new Error('上傳失敗');
+    }
+  } catch(e) {
+    status.textContent = '❌ 上傳失敗，請回 LINE 聊天傳送截圖。';
+    status.style.color = '#ff4466';
+  }
+  input.value = '';
 }
 
 async function openApiKeys(project) {
