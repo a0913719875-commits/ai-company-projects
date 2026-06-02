@@ -1094,7 +1094,16 @@ function addCanvasMessage(role, text) {
 function openPreviewInBrowser() {
   if (!currentPrototypeHtml) return;
   var url = PM + '/canvas/' + canvasProjectId + '/preview';
-  window.open(url, '_blank');
+  // LINE LIFF needs liff.openWindow; window.open is blocked
+  try {
+    if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
+      liff.openWindow({ url: url, external: true });
+    } else {
+      window.open(url, '_blank');
+    }
+  } catch(e) {
+    window.open(url, '_blank');
+  }
 }
 
 function sendCanvasMsg() {
@@ -1133,11 +1142,13 @@ function sendCanvasMsg() {
         document.getElementById('canvas-status').textContent = '版本 ' + canvasVersion + ' ✓ 已生成';
         var aiText = data.message || ('UI 版本 ' + canvasVersion + ' 已生成');
         canvasHistory.push({role:'ai', text: aiText});
+        var previewUrl = PM + '/canvas/' + canvasProjectId + '/preview';
         addCanvasMessage('ai',
           aiText + '<br><br>' +
-          '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">' +
-          '<button onclick="switchCanvasTab(\'preview\')" style="background:linear-gradient(135deg,#7c6cff,#00d4ff);border:none;color:white;padding:10px 18px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;">🎨 查看設計</button>' +
-          '<button onclick="openPreviewInBrowser()" style="background:rgba(0,180,0,0.2);border:1px solid #00d900;color:#00d900;padding:10px 18px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;">🔗 開啟預覽</button>' +
+          '<div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">' +
+          '<button onclick="openPreviewInBrowser()" style="background:linear-gradient(135deg,#7c6cff,#00d4ff);border:none;color:white;padding:12px 18px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;width:100%;">🔗 開啟設計預覽</button>' +
+          '<a href="' + previewUrl + '" target="_blank" style="display:block;text-align:center;color:#888;font-size:12px;padding:6px;text-decoration:underline;">或點此連結開啟</a>' +
+          '<button onclick="switchCanvasTab(\'preview\')" style="background:rgba(124,108,255,0.15);border:1px solid rgba(124,108,255,0.4);color:#7c6cff;padding:10px 18px;border-radius:10px;font-weight:700;cursor:pointer;font-size:13px;width:100%;">🎨 查看設計 Tab</button>' +
           '</div>'
         );
         document.getElementById('canvas-ready-version').textContent = 'UI 版本 ' + canvasVersion + ' 已生成';
