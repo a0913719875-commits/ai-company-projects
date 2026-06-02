@@ -745,7 +745,28 @@ function renderProducts() {
     const features = (p.features||[]).slice(0,4);
 
     if (isCompleted) {
+      const finalPaid = p.final_payment_confirmed === true || p.payment_status === 'fully_paid';
       // ── 已完成 ─────────────────────────────────────────
+      if (!finalPaid) {
+        // 尾款未付 - 紅色警告
+        return `
+          <div style="background:#0f1020;border:1px solid rgba(255,68,68,0.4);border-radius:16px;padding:18px;margin-bottom:14px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:16px;font-weight:800;margin-bottom:4px;">${name}</div>
+                <div style="font-size:12px;color:#ff4444;">🔴 開發完成，等待尾款</div>
+              </div>
+              <div style="font-size:22px;margin-left:8px;">🔒</div>
+            </div>
+            <div style="background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.25);border-radius:10px;padding:12px;margin-bottom:12px;">
+              <div style="font-size:13px;color:#ff6666;font-weight:700;margin-bottom:4px;">⚠️ 尚未付尾款</div>
+              <div style="font-size:12px;color:#aaa;">請完成尾款付款，管理者確認後即解鎖作品。</div>
+              <div style="font-size:12px;color:#888;margin-top:6px;">銀行：彰化銀行(009) 帳號：54700101897400</div>
+            </div>
+            ${features.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">${features.map(f=>`<span style="font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(255,68,68,0.08);color:#ff6666;border:1px solid rgba(255,68,68,0.2);">${f}</span>`).join('')}</div>` : ''}
+          </div>`;
+      }
+      // 尾款已付 - 綠色可開啟
       return `
         <div style="background:#0f1020;border:1px solid rgba(0,255,136,0.25);border-radius:16px;padding:18px;margin-bottom:14px;">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
