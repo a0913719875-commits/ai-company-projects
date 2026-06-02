@@ -1034,9 +1034,9 @@ function switchCanvasTab(tab) {
       document.getElementById('canvas-loading').classList.remove('hidden');
       document.getElementById('canvas-frame').style.display = 'none';
       document.getElementById('canvas-empty').style.display = 'none';
-    } else if (canvasProjectId && currentPrototypeHtml) {
-      // Generation done — load preview URL
-      renderInFrame(canvasProjectId);
+    } else if (currentPrototypeHtml) {
+      // Generation done — write HTML directly into iframe
+      renderInFrame(currentPrototypeHtml);
     } else {
       // Nothing generated yet
       document.getElementById('canvas-loading').classList.add('hidden');
@@ -1121,14 +1121,38 @@ function simulateProgress(durationMs) {
   return () => { clearInterval(iv); bar.style.width = '100%'; };
 }
 
-function renderInFrame(projectId) {
+function renderInFrame(projectIdOrHtml) {
+  const html = (typeof projectIdOrHtml === 'string' && projectIdOrHtml.includes('<!DOCTYPE'))
+    ? projectIdOrHtml
+    : currentPrototypeHtml;
+
+  if (!html) return;
+
   const frame = document.getElementById('canvas-frame');
-  // Use a real URL — most reliable in LINE WebView (no srcdoc/blob issues)
-  const previewUrl = `${PM}/canvas/${projectId}/preview?t=${Date.now()}`;
-  frame.src = previewUrl;
   frame.style.display = 'block';
   document.getElementById('canvas-loading').classList.add('hidden');
   document.getElementById('canvas-empty').style.display = 'none';
+
+  // Method: about:blank → document.write (same-origin, bypasses all cross-domain issues)
+  frame.src = 'about:blank';
+  const writeHtml = () => {
+    try {
+      const doc = frame.contentWindow.document;
+      doc.open('text/html', 'replace');
+      doc.write(html);
+      doc.close();
+    } catch(e) {
+      // Final fallback: blob URL
+      try {
+        const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+        frame.src = URL.createObjectURL(blob);
+      } catch(e2) {
+        frame.srcdoc = html;
+      }
+    }
+  };
+  // Small delay to ensure about:blank is loaded before writing
+  setTimeout(writeHtml, 80);
 }
 
 let _canvasSending = false;
@@ -1209,7 +1233,7 @@ async function sendCanvasMsg() {
 
       // If user already switched to preview tab, render immediately
       if (canvasCurrentTab === 'preview') {
-        renderInFrame(canvasProjectId);
+        renderInFrame(currentPrototypeHtml);
       }
 
       // Always add chat message (user can switch back to chat)
@@ -1228,7 +1252,7 @@ async function sendCanvasMsg() {
     } else {
       document.getElementById('canvas-loading').classList.add('hidden');
       if (currentPrototypeHtml && canvasCurrentTab === 'preview') {
-        renderInFrame(canvasProjectId);
+        renderInFrame(currentPrototypeHtml);
       } else if (!currentPrototypeHtml) {
         document.getElementById('canvas-empty').style.display = 'flex';
       }
