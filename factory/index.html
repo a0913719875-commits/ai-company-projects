@@ -419,24 +419,7 @@ const DEMO_LOGS = getFallbackLogs();
 
 // ── DEMO DATA ─────────────────────────────────────────────────
 function getDemoProjects() {
-  return [{
-    project_id:'c-demo-001',
-    product_name:'智慧計帳本系統',
-    requirement:'記錄收支、月統計、CSV匯出',
-    status:'development',
-    deploy_url:'',
-    ui_redesign_count:1,
-    ui_redesign_max:3,
-    created_at:'2026-05-31T09:00:00Z'
-  },{
-    project_id:'c-demo-002',
-    requirement:'洗腎病患接送系統',
-    status:'completed',
-    deploy_url:`${GH_PAGES}/c-72300127-itinerary-planner/`,
-    ui_redesign_count:0,
-    ui_redesign_max:3,
-    created_at:'2026-05-28T14:00:00Z'
-  }];
+  return []; // 不顯示假資料，只顯示真實專案
 }
 
 // ── VIEWS ────────────────────────────────────────────────────
@@ -1187,21 +1170,24 @@ async function afterLogin() {
     document.getElementById('user-cid').textContent = h(profile.userId);
     document.getElementById('login-prompt').classList.add('hidden');
     document.getElementById('products-logged').classList.remove('hidden');
+    // Load real projects from PM Center
     try {
-      const res = await fetch(`${PM}/api/customer/${profile.userId}/projects`,{signal:AbortSignal.timeout(6000)});
+      const res = await fetch(`${PM}/api/customer/${profile.userId}/projects`);
       const data = await res.json();
-      projects = data.projects||[];
-    } catch { projects = getDemoProjects(); }
+      projects = data.projects || [];
+    } catch(e) {
+      projects = [];
+    }
     renderProducts();
   } catch { demoMode(); }
 }
 
 function demoMode() {
-  document.getElementById('user-name').textContent = '示範用戶';
-  document.getElementById('user-cid').textContent = 'c_demo0001';
+  document.getElementById('user-name').textContent = '訪客';
+  document.getElementById('user-cid').textContent = '—';
   document.getElementById('login-prompt').classList.add('hidden');
   document.getElementById('products-logged').classList.remove('hidden');
-  projects = getDemoProjects();
+  projects = [];
   renderProducts();
 }
 
