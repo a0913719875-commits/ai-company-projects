@@ -275,7 +275,10 @@
       <!-- Preview bottom bar -->
       <div id="canvas-preview-info" class="hidden" style="padding:8px 14px;background:#0f1020;border-top:1px solid #1a1d35;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
         <div style="font-size:12px;color:#888;" id="canvas-version">版本 1</div>
-        <button onclick="switchCanvasTab('chat')" style="background:rgba(124,108,255,0.15);border:1px solid rgba(124,108,255,0.4);color:#7c6cff;padding:5px 12px;border-radius:8px;font-size:12px;cursor:pointer;">💬 繼續修改</button>
+        <div style="display:flex;gap:6px;">
+          <button id="open-browser-btn" onclick="openPreviewInBrowser()" class="hidden" style="background:rgba(0,180,0,0.15);border:1px solid rgba(0,180,0,0.4);color:#00d900;padding:5px 10px;border-radius:8px;font-size:11px;cursor:pointer;">🔗 新視窗</button>
+          <button onclick="switchCanvasTab('chat')" style="background:rgba(124,108,255,0.15);border:1px solid rgba(124,108,255,0.4);color:#7c6cff;padding:5px 12px;border-radius:8px;font-size:12px;cursor:pointer;">💬 繼續修改</button>
+        </div>
       </div>
     </div>
 
@@ -1121,11 +1124,18 @@ function simulateProgress(durationMs) {
   return () => { clearInterval(iv); bar.style.width = '100%'; };
 }
 
-function renderInFrame(projectIdOrHtml) {
-  const html = (typeof projectIdOrHtml === 'string' && projectIdOrHtml.includes('<!DOCTYPE'))
-    ? projectIdOrHtml
-    : currentPrototypeHtml;
+let _previewBlobUrl = null;
 
+function openPreviewInBrowser() {
+  if (!currentPrototypeHtml) return;
+  if (_previewBlobUrl) URL.revokeObjectURL(_previewBlobUrl);
+  const blob = new Blob([currentPrototypeHtml], {type:'text/html;charset=utf-8'});
+  _previewBlobUrl = URL.createObjectURL(blob);
+  window.open(_previewBlobUrl, '_blank');
+}
+
+function renderInFrame(htmlOrAny) {
+  const html = currentPrototypeHtml;
   if (!html) return;
 
   const frame = document.getElementById('canvas-frame');
@@ -1133,26 +1143,39 @@ function renderInFrame(projectIdOrHtml) {
   document.getElementById('canvas-loading').classList.add('hidden');
   document.getElementById('canvas-empty').style.display = 'none';
 
-  // Method: about:blank → document.write (same-origin, bypasses all cross-domain issues)
-  frame.src = 'about:blank';
-  const writeHtml = () => {
-    try {
-      const doc = frame.contentWindow.document;
-      doc.open('text/html', 'replace');
-      doc.write(html);
-      doc.close();
-    } catch(e) {
-      // Final fallback: blob URL
+  let rendered = false;
+
+  // Method 1: document.write into about:blank (same-origin, no cross-domain)
+  try {
+    frame.src = 'about:blank';
+    setTimeout(() => {
       try {
-        const blob = new Blob([html], {type:'text/html;charset=utf-8'});
-        frame.src = URL.createObjectURL(blob);
-      } catch(e2) {
-        frame.srcdoc = html;
+        const doc = frame.contentWindow.document;
+        doc.open('text/html', 'replace');
+        doc.write(html);
+        doc.close();
+        rendered = true;
+      } catch(e) {
+        console.warn('document.write failed:', e);
       }
-    }
-  };
-  // Small delay to ensure about:blank is loaded before writing
-  setTimeout(writeHtml, 80);
+      // If method 1 failed, try blob URL
+      if (!rendered) {
+        try {
+          const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+          frame.src = URL.createObjectURL(blob);
+          rendered = true;
+        } catch(e2) {
+          // Method 3: srcdoc
+          frame.srcdoc = html;
+        }
+      }
+      // Show "open in browser" button as backup
+      document.getElementById('open-browser-btn')?.classList.remove('hidden');
+    }, 100);
+  } catch(e) {
+    frame.srcdoc = html;
+    document.getElementById('open-browser-btn')?.classList.remove('hidden');
+  }
 }
 
 let _canvasSending = false;
