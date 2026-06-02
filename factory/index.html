@@ -1076,7 +1076,7 @@ function openCanvas(projectId) {
   document.getElementById('canvas-empty').style.display = 'flex';
   document.getElementById('canvas-loading').classList.add('hidden');
   document.getElementById('confirm-design-btn').classList.add('hidden');
-  document.getElementById('canvas-preview-info').classList.add('hidden');
+  document.getElementById('canvas-ready').style.display = 'none';
   document.getElementById('canvas-status').textContent = '描述您想要的產品，AI 即時生成';
   document.getElementById('canvas-progress').style.width = '0%';
   _canvasGenerating = false;
@@ -1188,7 +1188,7 @@ async function sendCanvasMsg() {
   // Only show loading in preview panel if user is already on that tab
   if (canvasCurrentTab === 'preview') {
     document.getElementById('canvas-loading').classList.remove('hidden');
-    document.getElementById('canvas-frame').style.display = 'none';
+    document.getElementById('canvas-ready').style.display = 'none';
     document.getElementById('canvas-empty').style.display = 'none';
   }
   document.getElementById('canvas-progress').style.width = '0%';
@@ -1228,8 +1228,7 @@ async function sendCanvasMsg() {
       currentPrototypeHtml = data.html;
       canvasVersion++;
 
-      document.getElementById('canvas-preview-info').classList.remove('hidden');
-      document.getElementById('canvas-version').textContent = `版本 ${canvasVersion}`;
+      document.getElementById('canvas-ready-version').textContent = `UI 版本 ${canvasVersion} 已生成`;
       document.getElementById('canvas-status').textContent = `版本 ${canvasVersion} ✓ 已生成`;
       document.getElementById('confirm-design-btn').classList.remove('hidden');
 
@@ -1266,7 +1265,7 @@ async function sendCanvasMsg() {
     stopProgress();
     genDiv.remove();
     document.getElementById('canvas-loading').classList.add('hidden');
-    if (currentPrototypeHtml) document.getElementById('canvas-frame').style.display = 'block';
+    if (currentPrototypeHtml && canvasCurrentTab === 'preview') showPreviewReady('');
     else document.getElementById('canvas-empty').style.display = 'flex';
     document.getElementById('canvas-status').textContent = '生成失敗，請重試';
     addCanvasMessage('ai', `❌ 生成逾時，請重試。如持續發生，請重新整理頁面。`);
