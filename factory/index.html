@@ -967,6 +967,23 @@ async function handlePaymentImage(input) {
   const file = input.files[0];
   if (!file) return;
 
+  // Ensure we have the user's LINE ID before uploading
+  if (!currentUser || !currentUser.userId) {
+    try {
+      if (liffReady && liff.isLoggedIn()) {
+        const profile = await liff.getProfile();
+        currentUser = profile;
+      }
+    } catch(e) {}
+  }
+
+  const lineUserId = currentUser?.userId;
+  if (!lineUserId) {
+    alert('請先登入 LINE 才能上傳付款截圖。請關閉後重新從 LINE 開啟。');
+    input.value = '';
+    return;
+  }
+
   const status = document.getElementById('payment-upload-status');
   status.style.display = 'block';
   status.textContent = '⚡ 上傳中，請稍候...';
@@ -974,7 +991,7 @@ async function handlePaymentImage(input) {
 
   try {
     const formData = new FormData();
-    formData.append('line_user_id', currentUser?.userId || 'U_unknown');
+    formData.append('line_user_id', lineUserId);
     formData.append('image', file);
 
     const resp = await fetch(`${PM}/upload_payment_proof`, {
