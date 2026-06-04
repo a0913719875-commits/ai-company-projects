@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>禮物管理系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #07070f; color: #ffffff; min-height: 100vh; }
+    .card { background: #0f1020; border: 1px solid #1a1d35; border-radius: 14px; }
+    .btn-primary { background: linear-gradient(135deg, #7c6cff, #7c6cff); color: white; border: none; border-radius: 10px; padding: 10px 20px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-secondary { background: transparent; color: #7c6cff; border: 1px solid #7c6cff33; border-radius: 10px; padding: 8px 16px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn-secondary:hover { background: #7c6cff11; }
+    .btn-danger { background: #dc262622; color: #dc2626; border: 1px solid #dc262633; border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+    .btn-danger:hover { background: #dc262633; }
+    .input { background: #0f1020; border: 1px solid #1a1d35; border-radius: 10px; padding: 10px 14px; color: #ffffff; width: 100%; font-size: 14px; transition: border 0.2s; outline: none; }
+    .input:focus { border-color: #7c6cff; box-shadow: 0 0 0 3px #7c6cff22; }
+    .select { background: #0f1020; border: 1px solid #1a1d35; border-radius: 10px; padding: 10px 14px; color: #ffffff; font-size: 14px; cursor: pointer; outline: none; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .table-row { border-bottom: 1px solid #1a1d35; transition: background 0.15s; }
+    .table-row:hover { background: #7c6cff08; }
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: #00000088; display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+    .modal-box { background: #0f1020; border-radius: 18px; width: 100%; max-width: 480px; padding: 28px; border: 1px solid #1a1d35; }
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a2e; border: 1px solid #7c6cff44; border-radius: 12px; padding: 14px 20px; color: white; font-size: 14px; font-weight: 500; z-index: 100; transform: translateY(100px); transition: transform 0.3s ease; }
+    .toast.show { transform: translateY(0); }
+    .toast.success { border-left: 3px solid #00ff88; }
+    .toast.error { border-left: 3px solid #ff4466; }
+    /* Empty state */
+    .empty-state { text-align: center; padding: 60px 20px; color: #666; }
+    /* Stat card */
+    .stat-card { text-align: center; }
+    .stat-value { font-size: 28px; font-weight: 800; color: #7c6cff; }
+    .stat-label { font-size: 12px; color: #888; margin-top: 4px; }
+    /* Search */
+    .search-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    /* Confirm dialog */
+    .confirm-overlay { position: fixed; inset: 0; background: #00000088; display: flex; align-items: center; justify-content: center; z-index: 60; padding: 16px; }
+    .confirm-box { background: #0f1020; border-radius: 16px; width: 100%; max-width: 340px; padding: 24px; border: 1px solid #1a1d35; text-align: center; }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- Confirm Dialog -->
+<div id="confirmOverlay" class="confirm-overlay hidden">
+  <div class="confirm-box">
+    <div class="text-lg font-bold mb-2" id="confirmTitle">確認刪除</div>
+    <div class="text-sm text-gray-400 mb-6" id="confirmMsg">此操作無法復原，確定要刪除嗎？</div>
+    <div class="flex gap-3 justify-center">
+      <button class="btn-secondary" onclick="closeConfirm()">取消</button>
+      <button class="btn-danger" id="confirmOkBtn" style="padding:8px 20px;">確定刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="modalOverlay" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-bold" id="modalTitle">新增資料</h2>
+      <button onclick="closeModal()" style="background:none;border:none;color:#888;font-size:22px;cursor:pointer;">✕</button>
+    </div>
+    <form id="dataForm" onsubmit="saveRecord(event)">
+      <div class="mb-4">
+        <label for="f_name" class="block text-sm font-semibold mb-2">禮物名稱</label>
+        <input id="f_name" name="name" type="text" class="input" required>
+      </div>
+      <div class="mb-4">
+        <label for="f_category" class="block text-sm font-semibold mb-2">分類</label>
+        <select id="f_category" name="category" class="select" required>
+          <option value="生日">生日</option>
+          <option value="節慶">節慶</option>
+          <option value="紀念日">紀念日</option>
+        </select>
+      </div>
+      <div class="mb-4">
+        <label for="f_recipient" class="block text-sm font-semibold mb-2">收禮人</label>
+        <input id="f_recipient" name="recipient" type="text" class="input" required>
+      </div>
+      <div class="mb-4">
+        <label for="f_date" class="block text-sm font-semibold mb-2">日期</label>
+        <input id="f_date" name="date" type="date" class="input" required>
+      </div>
+      <div class="mb-4">
+        <label for="f_price" class="block text-sm font-semibold mb-2">價格</label>
+        <input id="f_price" name="price" type="number" class="input" min="0" required>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button type="button" class="btn-secondary flex-1" onclick="closeModal()">取消</button>
+        <button type="submit" class="btn-primary flex-1" id="saveBtn">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="flex flex-wrap gap-3 items-center justify-between mb-8">
+  <div>
+    <h1 class="text-3xl font-black">禮物管理系統</h1>
+    <p class="text-gray-500 text-sm mt-1">簡單管理您的禮物清單</p>
+  </div>
+  <div class="flex gap-2">
+    <button class="btn-secondary" onclick="exportCSV()">📥 匯出 CSV</button>
+    <button class="btn-primary" onclick="openAddModal()">＋ 新增禮物</button>
+  </div>
+</div>
+
+<!-- Stats Row -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+  <div class="stat-card">
+    <div class="stat-value" id="totalGifts">0</div>
+    <div class="stat-label">總禮物數</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" id="totalSpent">0</div>
+    <div class="stat-label">總花費</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" id="averageSpent">0</div>
+    <div class="stat-label">平均支出</div>
+  </div>
+</div>
+
+<!-- Search & Filter -->
+<div class="card p-4 mb-6">
+  <div class="search-row">
+    <input class="input" style="flex:1;min-width:180px;" id="searchInput" placeholder="🔍 搜尋..." oninput="filterData()">
+    <select id="filterCategory" class="select" onchange="filterData()">
+      <option value="">所有分類</option>
+      <option value="生日">生日</option>
+      <option value="節慶">節慶</option>
+      <option value="紀念日">紀念日</option>
+    </select>
+    <button class="btn-secondary" onclick="clearFilters()">清除篩選</button>
+  </div>
+</div>
+
+<!-- Data Table -->
+<div class="card overflow-hidden">
+  <div class="overflow-x-auto">
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="border-bottom:1px solid #1a1d35;">
+          <th style="padding:14px 16px;text-align:left;font-weight:600;font-size:13px;color:#888;">禮物名稱</th>
+          <th style="padding:14px 16px;text-align:left;font-weight:600;font-size:13px;color:#888;">分類</th>
+          <th style="padding:14px 16px;text-align:left;font-weight:600;font-size:13px;color:#888;">收禮人</th>
+          <th style="padding:14px 16px;text-align:left;font-weight:600;font-size:13px;color:#888;">日期</th>
+          <th style="padding:14px 16px;text-align:left;font-weight:600;font-size:13px;color:#888;">價格</th>
+          <th style="padding:14px 16px;text-align:right;font-weight:600;font-size:13px;color:#888;">操作</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div id="emptyState" class="empty-state hidden">
+      <div style="font-size:48px;margin-bottom:12px;">📭</div>
+      <div class="font-bold text-lg">暫無資料</div>
+      <div class="text-sm mt-2">點擊右上角「新增」開始使用</div>
+    </div>
+  </div>
+  <div class="p-4 flex justify-between items-center" style="border-top:1px solid #1a1d35;">
+    <div class="text-sm text-gray-500" id="countInfo">共 0 筆</div>
+    <div class="flex gap-2" id="pagination"></div>
+  </div>
+</div>
+
+<script>
+const APP_CONFIG = {
+  storageKey: 'GIFT_DATA',
+  itemName: '禮物',
+  fields: [
+    { name: 'name', label: '禮物名稱', type: 'text', required: true },
+    { name: 'category', label: '分類', type: 'select', required: true, options: ['生日', '節慶', '紀念日'] },
+    { name: 'recipient', label: '收禮人', type: 'text', required: true },
+    { name: 'date', label: '日期', type: 'date', required: true },
+    { name: 'price', label: '價格', type: 'number', required: true }
+  ],
+  stats: [
+    { name: 'totalGifts', label: '總禮物數', calc: data => data.length },
+    { name: 'totalSpent', label: '總花費', calc: data => data.reduce((sum, gift) => sum + parseFloat(gift.price), 0) },
+    { name: 'averageSpent', label: '平均支出', calc: data => data.length > 0 ? (data.reduce((sum, gift) => sum + parseFloat(gift.price), 0) / data.length).toFixed(2) : 0 }
+  ],
+  sampleData: [
+    { name: '巧克力', category: '節慶', recipient: '小明', date: '2023-10-01', price: 200 },
+    { name: '花束', category: '生日', recipient: '小美', date: '2023-09-15', price: 500 },
+    { name: '手錶', category: '紀念日', recipient: '爸爸', date: '2023-07-21', price: 3000 },
+    { name: '紅酒', category: '節慶', recipient: '同事', date: '2023-11-10', price: 800 },
+    { name: '書籍', category: '生日', recipient: '朋友', date: '2023-08-30', price: 150 }
+  ]
+};
+
+let records = [];
+let editId = null;
+let confirmCallback = null;
+let currentPage = 1;
+const PAGE_SIZE = 15;
+
+function load() {
+  const stored = localStorage.getItem(APP_CONFIG.storageKey);
+  records = stored ? JSON.parse(stored) : [];
+  if (records.length === 0 && APP_CONFIG.sampleData.length > 0) {
+    records = APP_CONFIG.sampleData.map((d, i) => ({...d, id: Date.now() + i, createdAt: new Date().toISOString()}));
+    save();
+  }
+  render();
+}
+
+function save() {
+  localStorage.setItem(APP_CONFIG.storageKey, JSON.stringify(records));
+  updateStats();
+}
+
+function getFiltered() {
+  const q = document.getElementById('searchInput')?.value.toLowerCase() || '';
+  let result = records;
+  if (q) {
+    result = result.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(q)));
+  }
+  const category = document.getElementById('filterCategory')?.value;
+  if (category) {
+    result = result.filter(r => r.category === category);
+  }
+  return result;
+}
+
+function render() {
+  const filteredData = getFiltered();
+  const tableBody = document.getElementById('tableBody');
+  tableBody.innerHTML = '';
+  
+  if (filteredData.length === 0) {
+    document.getElementById('emptyState').classList.remove('hidden');
+  } else {
+    document.getElementById('emptyState').classList.add('hidden');
+  }
+  
+  for (const record of filteredData) {
+    const row = document.createElement('tr');
+    row.className = 'table-row';
+    row.innerHTML = `
+      <td style="padding:14px 16px;">${record.name}</td>
+      <td style="padding:14px 16px;">${record.category}</td>
+      <td style="padding:14px 16px;">${record.recipient}</td>
+      <td style="padding:14px 16px;">${record.date}</td>
+      <td style="padding:14px 16px;">${record.price}</td>
+      <td style="padding:14px 16px;text-align:right;">
+        <button class="btn-secondary" onclick="editRecord(${record.id})">編輯</button>
+        <button class="btn-danger" onclick="confirmDeletion(${record.id})">刪除</button>
+      </td>
+    `;
+    tableBody.appendChild(row);
+  }
+  updateStats();
+  updateCount();
+}
+
+function updateStats() {
+  APP_CONFIG.stats.forEach(stat => {
+    document.getElementById(stat.name).textContent = stat.calc(records);
+  });
+}
+
+function updateCount() {
+  const countInfo = document.getElementById('countInfo');
+  countInfo.textContent = `共 ${records.length} 筆`;
+}
+
+function filterData() {
+  render();
+}
+
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterCategory').value = '';
+  filterData();
+}
+
+function openAddModal() {
+  editId = null;
+  document.getElementById('modalTitle').textContent = '新增禮物';
+  document.getElementById('dataForm').reset();
+  openModal();
+}
+
+function openModal() {
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.add('hidden');
+}
+
+function saveRecord(event) {
+  event.preventDefault();
+  const formData = new FormData(event.target);
+  const newRecord = Object.fromEntries(formData.entries());
+  newRecord.price = parseFloat(newRecord.price);
+
+  if (editId) {
+    const index = records.findIndex(r => r.id === editId);
+    records[index] = { ...records[index], ...newRecord, modifiedAt: new Date().toISOString() };
+    showNotification('已更新禮物資訊');
+  } else {
+    newRecord.id = Date.now();
+    newRecord.createdAt = new Date().toISOString();
+    records.push(newRecord);
+    showNotification('已新增禮物');
+  }
+
+  save();
+  closeModal();
+}
+
+function editRecord(id) {
+  const record = records.find(r => r.id === id);
+  if (!record) return;
+
+  editId = id;
+  document.getElementById('modalTitle').textContent = '編輯禮物';
+  document.getElementById('f_name').value = record.name;
+  document.getElementById('f_category').value = record.category;
+  document.getElementById('f_recipient').value = record.recipient;
+  document.getElementById('f_date').value = record.date;
+  document.getElementById('f_price').value = record.price;
+
+  openModal();
+}
+
+function confirmDeletion(id) {
+  confirmCallback = () => deleteRecord(id);
+  document.getElementById('confirmOverlay').classList.remove('hidden');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.add('hidden');
+}
+
+function deleteRecord(id) {
+  records = records.filter(r => r.id !== id);
+  save();
+  render();
+  closeConfirm();
+  showNotification('已刪除禮物');
+}
+
+function showNotification(message, type = 'success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = `toast show ${type}`;
+  setTimeout(() => {
+    toast.className = 'toast';
+  }, 3000);
+}
+
+function exportCSV() {
+  const headers = APP_CONFIG.fields.map(f => f.label).join(',');
+  const dataRows = records.map(record => 
+    APP_CONFIG.fields.map(f => JSON.stringify(record[f.name] || '')).join(',')
+  ).join('\n');
+  const csvContent = `data:text/csv;charset=utf-8,${headers}\n${dataRows}`;
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', 'gifts.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+load();
+</script>
+
+</body>
+</html>
